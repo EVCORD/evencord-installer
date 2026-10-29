@@ -11,8 +11,8 @@ This is [alrimii/evencord-installer](https://github.com/alrimii/evencord-install
 ## Repository relationships
 
 - Core fork: [alrimii/evencord](https://github.com/alrimii/evencord).
-- Installer checkout: `C:\Users\MainRec\Desktop\DiscordModFoundation\installer`.
-- Core checkout: `C:\Users\MainRec\Desktop\DiscordModFoundation\core`.
+- Installer checkout: `<workspace>\installer`.
+- Core checkout: `<workspace>\core`.
 - Installer `origin`: `https://github.com/alrimii/evencord-installer.git`.
 - Installer `upstream`: `https://github.com/Equicord/Equilotl.git`.
 - Installer starting commit: `4f204a1b8e3e6e1c79f5f4a09591465fc4a97223`.

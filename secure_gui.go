@@ -15,19 +15,48 @@ import (
 	g "github.com/AllenDang/giu"
 	"github.com/AllenDang/imgui-go"
 	"image"
+	"strings"
 	"sync"
 )
 
 func secureGUI() {
-	win = g.NewMasterWindow(branding.Project.InstallerName, 940, 570, 0)
+	g.SetDefaultFontSize(16)
+	win = g.NewMasterWindow(branding.Project.InstallerName, 900, 680, 0)
+	win.SetSizeLimits(780, 640, g.DontCare, g.DontCare)
 	applyBrandTheme()
-	if icon, _, err := image.Decode(bytes.NewReader(iconBytes)); err == nil {
+	icon, _, iconErr := image.Decode(bytes.NewReader(iconBytes))
+	if iconErr == nil {
 		win.SetIcon([]image.Image{icon})
 	}
 	var mu sync.Mutex
-	state, detail, busy := "Not checked", "Detect Discord Stable to inspect installation ownership.", false
+	state, detail, ownership, busy := "Looking for Discord", "", "", true
 	var chosen *DiscordInstall
 	set := func(s, d string) { mu.Lock(); state, detail = s, d; mu.Unlock(); g.Update() }
+	discover := func() {
+		found := FindDiscords()
+		var target *DiscordInstall
+		status, message := "Discord not found", "Install Discord Stable for Windows, then select Refresh."
+		if len(found) == 1 {
+			target = found[0].(*DiscordInstall)
+			status = target.ownership()
+			switch status {
+			case "Not installed":
+				message = "Ready to install EvenCord. Close Discord before continuing."
+			case "Installed":
+				message = "EvenCord is installed. You can update, repair or uninstall it."
+			case "Repair available":
+				message = "The EvenCord payload needs repair. Close Discord and select Repair."
+			case "Recovery available":
+				message = "An earlier operation was interrupted. Select Recover before continuing."
+			default:
+				message = "This installation cannot be changed safely. Remove other modifications with their own installer, or contact support."
+			}
+		}
+		mu.Lock()
+		chosen, ownership, state, detail, busy = target, status, status, message, false
+		mu.Unlock()
+		g.Update()
+	}
 	launch := func(operation string) {
 		mu.Lock()
 		if busy {
@@ -41,114 +70,98 @@ func secureGUI() {
 			defer func() { mu.Lock(); busy = false; mu.Unlock(); g.Update() }()
 			var err error
 			if target == nil {
-				err = errors.New("detect a supported Discord installation first")
+				err = errors.New("select a supported Discord installation first")
 			} else if err = requireLive(); err == nil {
 				switch operation {
 				case "Uninstall":
-					set("Uninstalling", "Restoring the verified original Discord archive.")
+					set("Uninstalling EvenCord", "Restoring the original Discord loader. Your settings will be kept.")
 					err = target.unpatch()
 				case "Recover":
-					set("Recovering", "Checking the transaction journal and recovery archive.")
+					set("Recovering installation", "Restoring a consistent state from the recovery records.")
 					err = target.recover()
 				default:
-					set("Downloading", "Retrieving signed EvenCord release metadata.")
+					set("Checking for updates", "Finding the latest signed EvenCord release.")
 					approvedRelease, err = release.Latest(context.Background(), branding.ReleaseTrust(), "core")
 					if err == nil {
-						set("Verifying", "Downloading and verifying artifact size, signature and SHA-256.")
+						set("Downloading EvenCord", "The download is verified before any installation files are changed.")
 						err = installLatestBuilds()
 					}
 					if err == nil {
-						set("Installing", "Preserving recovery data and activating the verified build.")
+						set("Installing EvenCord", "Applying the verified build and preserving recovery files.")
 						err = target.patch()
 					}
 				}
 			}
 			if err != nil {
-				set("Failed", err.Error()+" Recovery data is preserved. Close Discord yourself before retrying locked-file failures; use Recover for an unfinished transaction.")
+				if target != nil {
+					mu.Lock()
+					ownership = target.ownership()
+					mu.Unlock()
+				}
+				set("Could not complete "+strings.ToLower(operation), err.Error()+" Close Discord and retry if files are in use. Recovery data has been kept.")
+				return
+			}
+			mu.Lock()
+			ownership = target.ownership()
+			mu.Unlock()
+			if operation == "Uninstall" {
+				set("EvenCord uninstalled", "Discord's original loader is restored. Your EvenCord settings are still saved.")
 			} else {
-				set("Completed", operation+" completed successfully. Settings were preserved.")
+				set(operation+" complete", "You can now open Discord. Your settings have been preserved.")
 			}
 		}()
 	}
+	go discover()
 	win.Run(func() {
 		mu.Lock()
-		s, d, working := state, detail, busy
-		target := chosen
+		s, d, owned, working, target := state, detail, ownership, busy, chosen
 		mu.Unlock()
-		blocked := working || target == nil || requireLive() != nil
+		eligible := target != nil && requireLive() == nil
+		canInstall := eligible && (owned == "Not installed" || owned == "Installed")
+		canRepair := eligible && (owned == "Installed" || owned == "Repair available")
+		canRemove := eligible && (owned == "Installed" || owned == "Repair available")
+		installLabel := "Install EvenCord"
+		if owned == "Installed" {
+			installLabel = "Update EvenCord"
+		}
+		location := "No supported installation selected"
+		if target != nil {
+			location = target.path
+		}
+		g.PushWindowPadding(32, 24)
 		g.SingleWindow().Layout(
-			g.Style().SetFontSize(32).To(g.Label(branding.Project.InstallerName)),
-			g.Label("Public beta "+buildinfo.InstallerTag+" / Windows x64 / Discord Stable"),
-			g.Dummy(0, 12), g.Label(s), g.Label(d).Wrapped(true),
+			g.Align(g.AlignCenter).To(g.Row(
+				g.ImageWithRgba(icon).Size(64, 64),
+				g.Column(g.Style().SetFontSize(30).To(g.Label("EvenCord Installer")), g.Label("Make Discord your own.")),
+			)),
+			g.Dummy(0, 24),
+			g.Style().SetFontSize(20).To(g.Label("Discord Stable")),
+			g.Label(location).Wrapped(true),
 			g.Dummy(0, 12),
-			g.Button("Detect Discord Stable").Disabled(working).OnClick(func() {
-				mu.Lock()
-				chosen = nil
-				mu.Unlock()
-				found := FindDiscords()
-				if len(found) != 1 {
-					set("Unsupported installation", "No single supported Discord Stable installation was found.")
-					return
-				}
-				target := found[0].(*DiscordInstall)
-				mu.Lock()
-				chosen = target
-				mu.Unlock()
-				set(target.ownership(), target.path)
-			}),
-			g.Button("Check approved release").Disabled(working).OnClick(func() {
-				if err := requireLive(); err != nil {
-					set("Releases unavailable", err.Error())
-					return
-				}
-				mu.Lock()
-				busy = true
-				mu.Unlock()
-				go func() {
-					defer func() { mu.Lock(); busy = false; mu.Unlock(); g.Update() }()
-					v, err := release.Latest(context.Background(), branding.ReleaseTrust(), "core")
-					if err != nil {
-						set("Release check failed", err.Error())
-						return
-					}
-					old, err := secureEngine().Current(BaseDir)
-					if err != nil {
-						set("Release available", v.Manifest.Version)
-						return
-					}
-					if err := release.Advance(v.Manifest, old.Manifest); err != nil {
-						set("Release rejected", err.Error())
-						return
-					}
-					order, err := release.Compare(v.Manifest.Version, old.Manifest.Version)
-					if err != nil {
-						set("Release check failed", err.Error())
-					} else if order > 0 {
-						set("Update available", v.Manifest.Version)
-					} else {
-						set("Installed", "No newer approved release is available.")
-					}
-				}()
-			}),
-			g.Row(g.Button("Install / Update").Disabled(blocked).OnClick(func() { launch("Install") }), g.Button("Repair").Disabled(blocked).OnClick(func() { launch("Repair") }), g.Button("Uninstall").Disabled(blocked).OnClick(func() { launch("Uninstall") }), g.Button("Recover").Disabled(blocked).OnClick(func() { launch("Recover") })),
-			g.Button("Stage installer update").Disabled(working || !CanUpdateSelf()).OnClick(func() {
-				mu.Lock()
-				busy = true
-				mu.Unlock()
-				go func() {
-					defer func() { mu.Lock(); busy = false; mu.Unlock(); g.Update() }()
-					set("Downloading", "Verifying the signed installer update.")
-					if err := UpdateSelf(); err != nil {
-						set("Failed", err.Error())
-					} else {
-						set("Installer update staged", "Verified executable: "+pendingInstaller+". Your existing executable remains available; launch the staged copy when ready.")
-					}
-				}()
-			}),
-			g.Dummy(0, 18), g.Label("Close Discord before installing. Only reviewed Stable archives are supported. Automatic updates are off; use this installer for manual upgrades.").Wrapped(true),
-			g.Label("Based on Equilotl, Equicord and Vencord. "+branding.Project.Links.Support).Wrapped(true),
-			g.Button("Help and report a problem").OnClick(func() { g.OpenURL(branding.Project.Links.Support) }),
+			g.Child().Size(g.Auto, 138).Border(true).Layout(
+				g.Style().SetFontSize(20).To(g.Label(s)),
+				g.Dummy(0, 8), g.Label(d).Wrapped(true),
+			),
+			g.Dummy(0, 16),
+			g.Row(
+				g.Button(installLabel).Size(244, 46).Disabled(working || !canInstall).OnClick(func() { launch("Install") }),
+				g.Button("Repair").Size(166, 46).Disabled(working || !canRepair).OnClick(func() { launch("Repair") }),
+				g.Button("Uninstall").Size(166, 46).Disabled(working || !canRemove).OnClick(func() { launch("Uninstall") }),
+			),
+			g.Dummy(0, 12),
+			g.Row(
+				g.Button("Refresh").Size(128, 34).Disabled(working).OnClick(func() { mu.Lock(); busy = true; mu.Unlock(); go discover() }),
+				g.Button("Help").Size(128, 34).OnClick(func() { g.OpenURL(branding.Project.Links.Support) }),
+				&CondWidget{owned == "Recovery available", func() g.Widget {
+					return g.Button("Recover").Size(128, 34).Disabled(working).OnClick(func() { launch("Recover") })
+				}, nil},
+			),
+			g.Dummy(0, 22), g.Separator(), g.Dummy(0, 10),
+			g.Label("Windows x64 / Discord Stable / Beta "+buildinfo.InstallerTag),
+			g.Label("Close Discord before installing. Uninstall keeps your settings.").Wrapped(true),
+			g.Label("Based on Equilotl, Equicord and Vencord.").Wrapped(true),
 		)
+		g.PopStyle()
 	})
 }
 
