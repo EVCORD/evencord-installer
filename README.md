@@ -4,13 +4,15 @@
 
 The Windows installer for [EvenCord](https://github.com/alrimii/evencord), an independent Discord client modification based on Equicord and Vencord. Derived from Equilotl, with explicit ownership, authenticated payloads and recovery support.
 
-**Public beta preparation:** `0.1.0-beta.1`. Download links are added only after signed artifacts pass release verification. The initial target is Windows 10/11 x64 and Discord Stable 1.0.9266 with the exact reviewed archive. Other channels, architectures and unknown archive hashes are rejected.
+**Public Beta:** core `0.1.0-beta.2`, installer `0.1.0-beta.1`. Component versions are independent. Experimental software, not a stable release. Windows x64 and the reviewed Discord Stable 1.0.9266 archive only.
+
+[Download for Windows](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.1/EvenCordInstaller-x64.exe) | [Website & plugins](https://alrimii.github.io/evencord/) | [Installer release notes and verification](https://github.com/alrimii/evencord-installer/releases/tag/installer-v0.1.0-beta.1) | [Core release](https://github.com/alrimii/evencord/releases/tag/core-v0.1.0-beta.2)
 
 ## Install
 
 1. Use official Discord Stable. Remove any existing modification using its supported uninstaller first; this installer refuses Equicord, Vencord, OpenAsar and unknown loaders.
 2. Fully quit Discord, including its tray process.
-3. Download the approved `EvenCordInstaller-x64.exe` once the beta is published.
+3. Download the approved `EvenCordInstaller-x64.exe` from the link above.
 4. Select **Detect Discord Stable**, then **Install / Update**. Launch Discord after the operation completes.
 
 The optional CLI is `EvenCordInstallerCli-x64.exe`. Use `--help` for operation flags. Neither variant downloads official Equicord binaries as a fallback.
