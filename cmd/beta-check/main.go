@@ -17,6 +17,7 @@ import (
 
 func run() error {
 	bundle := flag.String("bundle", "", "Signed local bundle")
+	previousBundle := flag.String("previous-bundle", "", "Earlier signed public bundle to install before upgrading the disposable fixture")
 	component := flag.String("component", "core", "Component to verify")
 	output := flag.String("output", "", "Staging directory inside this checkout's .cache")
 	network := flag.Bool("network", false, "Retrieve the approved public release")
@@ -97,6 +98,19 @@ func run() error {
 		settings := filepath.Join(root, "fixture-settings.txt")
 		if e = os.WriteFile(settings, []byte("preserve"), 0600); e != nil {
 			return e
+		}
+		if *previousBundle != "" {
+			data, err := os.ReadFile(filepath.Join(*previousBundle, "core.release.json"))
+			if err != nil {
+				return err
+			}
+			previous, err := release.Verify(data, branding.ReleaseTrust(), "core", time.Now(), true)
+			if err != nil {
+				return err
+			}
+			if err = engine.Install(target, root, previous, filepath.Join(*previousBundle, previous.Manifest.Artifact.Name)); err != nil {
+				return fmt.Errorf("previous public beta fixture: %w", err)
+			}
 		}
 		if e = engine.Install(target, root, v, payload); e != nil {
 			return e

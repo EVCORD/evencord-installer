@@ -23,15 +23,15 @@
             "FileDescription": "EvenCord Installer",
             "LegalCopyright": "\u00a9 2026 Vencord and Equicord contributors - GPL3.0; additional branding copyright 2026 EvenCord contributors.",
             "ProductName": "EvenCord Installer",
-            "ProductVersion": "0.1.0-beta.2",
+            "ProductVersion": "0.1.0-beta.3",
             "OriginalFilename": "EvenCordInstaller-x64.exe",
-            "FileVersion": "0.1.0.2",
+            "FileVersion": "0.1.0.3",
             "InternalName": "evencord-installer"
           }
         },
         "fixed": {
-          "file_version": "0.1.0.2",
-          "product_version": "0.1.0.2",
+          "file_version": "0.1.0.3",
+          "product_version": "0.1.0.3",
           "flags": "Prerelease"
         }
       }
