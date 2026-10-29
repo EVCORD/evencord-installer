@@ -1,6 +1,6 @@
 # <img src="branding/assets/mark.svg" width="36" align="left" alt=""> EvenCord Installer
 
-Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evencord) on Discord Stable for Windows.
+Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evencord) on Discord Stable, PTB or Canary for Windows.
 
 [Website](https://alrimii.github.io/evencord/) · [Support](https://github.com/alrimii/evencord-installer/issues) · [Releases](https://github.com/alrimii/evencord-installer/releases)
 
@@ -10,12 +10,12 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 | Version | Download |
 | --- | --- |
-| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.7/EvenCordInstaller-x64.exe) |
-| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.7/EvenCordInstallerCli-x64.exe) |
+| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.8/EvenCordInstaller-x64.exe) |
+| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.8/EvenCordInstallerCli-x64.exe) |
 
 ## Usage
 
-1. Open the installer. Discord Stable is detected automatically.
+1. Open the installer. Select Discord Stable, PTB or Canary. Installed channels are detected automatically.
 2. Save unsaved clips and fully close Discord, including its tray icon.
 3. Select **Install EvenCord**, **Repair** or **Uninstall**.
 

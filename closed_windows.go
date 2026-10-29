@@ -11,6 +11,63 @@ import (
 	"unsafe"
 )
 
+type processAccess struct {
+	open  func(uint32, bool, uint32) (windows.Handle, error)
+	image func(windows.Handle) (string, error)
+	wait  func(windows.Handle, uint32) (uint32, error)
+	stop  func(windows.Handle, uint32) error
+	close func(windows.Handle) error
+}
+
+func processImage(process windows.Handle) (string, error) {
+	buffer := make([]uint16, 32768)
+	size := uint32(len(buffer))
+	if err := windows.QueryFullProcessImageName(process, 0, &buffer[0], &size); err != nil {
+		return "", err
+	}
+	return strings.TrimPrefix(windows.UTF16ToString(buffer[:size]), `\\?\`), nil
+}
+
+func closeProcessInRoot(pid uint32, root string, api processAccess) error {
+	inspect := uint32(windows.PROCESS_QUERY_LIMITED_INFORMATION)
+	process, err := api.open(inspect, false, pid)
+	if err != nil {
+		Log.Debug("Skipping inaccessible or exited Discord process", pid, err)
+		return nil
+	}
+	image, queryErr := api.image(process)
+	api.close(process)
+	inRoot := func(image string) bool {
+		return strings.HasPrefix(strings.ToLower(filepath.Clean(image)), strings.ToLower(filepath.Clean(root)+string(filepath.Separator)))
+	}
+	if queryErr != nil || !inRoot(image) {
+		return nil
+	}
+	process, err = api.open(inspect|windows.PROCESS_TERMINATE|windows.SYNCHRONIZE, false, pid)
+	if err != nil {
+		Log.Warn("Could not automatically close Discord process", pid, err, "Locked installation files will prevent changes. Quit Discord from its tray icon if asked.")
+		return nil
+	}
+	defer api.close(process)
+	image, queryErr = api.image(process)
+	if queryErr != nil || !inRoot(image) {
+		return nil
+	}
+	result, err := api.wait(process, 0)
+	if err != nil || result == windows.WAIT_OBJECT_0 {
+		return nil
+	}
+	if err = api.stop(process, 0); err != nil {
+		Log.Warn("Could not automatically close Discord process", pid, err)
+		return nil
+	}
+	result, err = api.wait(process, 5000)
+	if err != nil || result != windows.WAIT_OBJECT_0 {
+		return fmt.Errorf("%s has not exited yet. Quit it from the tray, wait a moment, then retry", filepath.Base(image))
+	}
+	return nil
+}
+
 func (di *DiscordInstall) closeForOperation() error {
 	if _, err := di.target(); err != nil {
 		return err
@@ -30,44 +87,9 @@ func (di *DiscordInstall) closeForOperation() error {
 		if !strings.EqualFold(windows.UTF16ToString(entry.ExeFile[:]), name) {
 			continue
 		}
-		process, openErr := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.PROCESS_TERMINATE|windows.SYNCHRONIZE, false, entry.ProcessID)
-		if openErr == windows.ERROR_INVALID_PARAMETER {
-			continue
+		if closeErr := closeProcessInRoot(entry.ProcessID, root, processAccess{windows.OpenProcess, processImage, windows.WaitForSingleObject, windows.TerminateProcess, windows.CloseHandle}); closeErr != nil {
+			return closeErr
 		}
-		if openErr != nil {
-			return fmt.Errorf("close %s, including its tray icon, then retry; its running process could not be inspected", windowsNames[di.branch])
-		}
-		if status, waitErr := windows.WaitForSingleObject(process, 0); waitErr == nil && status == windows.WAIT_OBJECT_0 {
-			windows.CloseHandle(process)
-			continue
-		}
-		buffer := make([]uint16, 32768)
-		size := uint32(len(buffer))
-		queryErr := windows.QueryFullProcessImageName(process, 0, &buffer[0], &size)
-		if queryErr != nil {
-			windows.CloseHandle(process)
-			return fmt.Errorf("close %s, including its tray icon, then retry; its running process could not be inspected", windowsNames[di.branch])
-		}
-		image := strings.TrimPrefix(windows.UTF16ToString(buffer[:size]), `\\?\`)
-		if strings.HasPrefix(strings.ToLower(filepath.Clean(image)), strings.ToLower(filepath.Clean(root)+string(filepath.Separator))) {
-			result, waitErr := windows.WaitForSingleObject(process, 0)
-			if waitErr == nil && result != windows.WAIT_OBJECT_0 {
-				if stopErr := windows.TerminateProcess(process, 0); stopErr != nil {
-					windows.CloseHandle(process)
-					return fmt.Errorf("could not close %s: %w. Quit it from the tray and retry", name, stopErr)
-				}
-				result, waitErr = windows.WaitForSingleObject(process, 5000)
-				if waitErr != nil || result != windows.WAIT_OBJECT_0 {
-					windows.CloseHandle(process)
-					return fmt.Errorf("%s has not exited yet. Wait a moment, then retry", name)
-				}
-			}
-			if waitErr != nil {
-				windows.CloseHandle(process)
-				return waitErr
-			}
-		}
-		windows.CloseHandle(process)
 	}
 	if err != windows.ERROR_NO_MORE_FILES {
 		return fmt.Errorf("cannot finish checking Discord processes: %w", err)
