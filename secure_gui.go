@@ -102,6 +102,8 @@ func secureGUI() {
 			var err error
 			if target == nil {
 				err = errors.New("select a supported Discord installation first")
+			} else if err = target.closeForOperation(); err != nil {
+				// The selected channel could not be closed.
 			} else if err = requireLive(); err == nil {
 				switch operation {
 				case "Uninstall":
@@ -171,38 +173,40 @@ func secureGUI() {
 		}
 		g.PushWindowPadding(32, 24)
 		g.SingleWindow().Layout(
-			g.Align(g.AlignCenter).To(g.Row(
-				g.ImageWithRgba(icon).Size(64, 64),
-				g.Column(g.Style().SetFontSize(30).To(g.Label("EvenCord Installer")), g.Label("Make Discord your own.")),
-			)),
-			g.Dummy(0, 24),
-			g.Style().SetFontSize(20).To(g.Label("Choose your Discord installation")),
-			g.Row(choices...),
-			g.Label(location).Wrapped(true),
-			g.Label("EvenCord settings: "+install.DataRoot(BaseDir, channels[channelIndex].branch)).Wrapped(true),
-			g.Dummy(0, 12),
-			g.Child().Size(g.Auto, 138).Border(true).Layout(
-				g.Style().SetFontSize(20).To(g.Label(s)),
-				g.Dummy(0, 8), g.Label(d).Wrapped(true),
+			g.Child().Size(g.Auto, g.Auto).Layout(
+				g.Align(g.AlignCenter).To(g.Row(
+					g.ImageWithRgba(icon).Size(64, 64),
+					g.Column(g.Style().SetFontSize(30).To(g.Label("EvenCord Installer")), g.Label("Make Discord your own.")),
+				)),
+				g.Dummy(0, 24),
+				g.Style().SetFontSize(20).To(g.Label("Choose your Discord installation")),
+				g.Row(choices...),
+				g.Label(location).Wrapped(true),
+				g.Label("EvenCord settings: "+install.DataRoot(BaseDir, channels[channelIndex].branch)).Wrapped(true),
+				g.Dummy(0, 12),
+				g.Child().Size(g.Auto, 138).Border(true).Layout(
+					g.Style().SetFontSize(20).To(g.Label(s)),
+					g.Dummy(0, 8), g.Label(d).Wrapped(true),
+				),
+				g.Dummy(0, 16),
+				g.Row(
+					g.Button(installLabel).Size(244, 46).Disabled(working || !canInstall).OnClick(func() { launch("Install") }),
+					g.Button("Repair").Size(166, 46).Disabled(working || !canRepair).OnClick(func() { launch("Repair") }),
+					g.Button("Uninstall").Size(166, 46).Disabled(working || !canRemove).OnClick(func() { launch("Uninstall") }),
+				),
+				g.Dummy(0, 12),
+				g.Row(
+					g.Button("Refresh").Size(128, 34).Disabled(working).OnClick(func() { mu.Lock(); busy = true; mu.Unlock(); go discover() }),
+					g.Button("Help").Size(128, 34).OnClick(func() { g.OpenURL(branding.Project.Links.Support) }),
+					&CondWidget{owned == "Recovery available", func() g.Widget {
+						return g.Button("Recover").Size(128, 34).Disabled(working).OnClick(func() { launch("Recover") })
+					}, nil},
+				),
+				g.Dummy(0, 22), g.Separator(), g.Dummy(0, 10),
+				g.Label("Windows x64 / Stable, PTB and Canary / Beta "+buildinfo.InstallerTag),
+				g.Label("Operations close the selected Discord channel. Save unsaved clips first. Other channels stay open.").Wrapped(true),
+				g.Label("Based on Equilotl, Equicord and Vencord.").Wrapped(true),
 			),
-			g.Dummy(0, 16),
-			g.Row(
-				g.Button(installLabel).Size(244, 46).Disabled(working || !canInstall).OnClick(func() { launch("Install") }),
-				g.Button("Repair").Size(166, 46).Disabled(working || !canRepair).OnClick(func() { launch("Repair") }),
-				g.Button("Uninstall").Size(166, 46).Disabled(working || !canRemove).OnClick(func() { launch("Uninstall") }),
-			),
-			g.Dummy(0, 12),
-			g.Row(
-				g.Button("Refresh").Size(128, 34).Disabled(working).OnClick(func() { mu.Lock(); busy = true; mu.Unlock(); go discover() }),
-				g.Button("Help").Size(128, 34).OnClick(func() { g.OpenURL(branding.Project.Links.Support) }),
-				&CondWidget{owned == "Recovery available", func() g.Widget {
-					return g.Button("Recover").Size(128, 34).Disabled(working).OnClick(func() { launch("Recover") })
-				}, nil},
-			),
-			g.Dummy(0, 22), g.Separator(), g.Dummy(0, 10),
-			g.Label("Windows x64 / Stable, PTB and Canary / Beta "+buildinfo.InstallerTag),
-			g.Label("Close Discord before installing. Uninstall keeps your settings.").Wrapped(true),
-			g.Label("Based on Equilotl, Equicord and Vencord.").Wrapped(true),
 		)
 		g.PopStyle()
 	})

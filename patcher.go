@@ -60,6 +60,9 @@ func (di *DiscordInstall) patch() error {
 	if err := requireLive(); err != nil {
 		return err
 	}
+	if err := di.closeForOperation(); err != nil {
+		return err
+	}
 	target, err := di.target()
 	if err != nil {
 		return err
@@ -81,6 +84,9 @@ func (di *DiscordInstall) unpatch() error {
 	if err := requireLive(); err != nil {
 		return err
 	}
+	if err := di.closeForOperation(); err != nil {
+		return err
+	}
 	target, err := di.target()
 	if err != nil {
 		return err
@@ -93,6 +99,9 @@ func (di *DiscordInstall) unpatch() error {
 }
 func (di *DiscordInstall) recover() error {
 	if err := requireLive(); err != nil {
+		return err
+	}
+	if err := di.closeForOperation(); err != nil {
 		return err
 	}
 	target, err := di.target()

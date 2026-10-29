@@ -103,7 +103,9 @@ func FindDiscords() []any {
 }
 
 func PreparePatch(di *DiscordInstall) {
-	// EvenCord never terminates Discord. Locked files produce a recoverable operation error.
+	if err := di.closeForOperation(); err != nil {
+		Log.Warn("Could not prepare Discord:", err)
+	}
 }
 
 func FixOwnership(_ string) error {

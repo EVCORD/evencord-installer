@@ -10,13 +10,13 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 | Version | Download |
 | --- | --- |
-| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.5/EvenCordInstaller-x64.exe) |
-| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.5/EvenCordInstallerCli-x64.exe) |
+| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.6/EvenCordInstaller-x64.exe) |
+| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.6/EvenCordInstallerCli-x64.exe) |
 
 ## Usage
 
 1. Open the installer. Discord Stable is detected automatically.
-2. Fully close Discord, including its tray icon.
+2. Save unsaved clips and fully close Discord, including its tray icon.
 3. Select **Install EvenCord**, **Repair** or **Uninstall**.
 
 Uninstall restores Discord's original loader and keeps your settings. If an operation is interrupted, refresh the installation status and use **Recover** when offered. Other client modifications must be removed with their own installer first.
@@ -44,3 +44,5 @@ For the CLI, generate resources with `go run ./cmd/brand-resources -cli`, then b
 Based on [Equilotl](https://github.com/Equicord/Equilotl) and the [Vencord Installer](https://github.com/Vencord/Installer). Original authors, copyright notices, Git history and [GPL license](LICENSE) are preserved.
 
 This is the EvenCord installer, not an official Discord, Equicord or Vencord product.
+
+The installer follows upstream close-before-patching behavior and automatically closes the selected Discord installation when an operation starts. Other channels stay open. If an older failed attempt shows Recovery available, choose Recover before Install.

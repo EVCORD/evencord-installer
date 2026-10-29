@@ -372,6 +372,9 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 	if !approved {
 		return errors.New("unrecognized Discord archive; refusing to overwrite a possible modification")
 	}
+	if err = checkRenameAccess(app); err != nil {
+		return err
+	}
 	if err = e.Activate(root, v, staged); err != nil {
 		return err
 	}
