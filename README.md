@@ -1,5 +1,7 @@
 # Equilotl
 
+> **Foundation fork, not a release.** This is `alrimii/discord-mod-installer`, a history-preserving fork of Equilotl. The project name is temporary. Installer behavior, branding, and download/update destinations are still upstream. GitHub Actions is disabled, and no fork binaries are published. The instructions and download links below describe upstream Equilotl, not a release of this fork. Read [FOUNDATION.md](FOUNDATION.md) before development or distribution.
+
 The Equicord Installer allows you to install [Equicord, the cutest Discord Desktop client mod](https://github.com/Equicord/Equicord)
 
 ![image](https://i.imgur.com/oHN41ss.png)

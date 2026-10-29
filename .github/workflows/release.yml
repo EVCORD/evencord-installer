@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   build-linux:
+    if: ${{ false }}
     runs-on: ubuntu-latest # Go without CGO seems to not depend on glibc, so building on latest should be fine
 
     steps:
@@ -91,6 +92,7 @@ jobs:
             EquilotlCli-linux
 
   build-linux-arm64:
+    if: ${{ false }}
     runs-on: ubuntu-24.04-arm # Native ARM64 runner, the GUI needs ARM64 X11/Wayland/GL libraries
 
     steps:
@@ -151,6 +153,7 @@ jobs:
             EquilotlCli-linux-arm64
 
   build-mac:
+    if: ${{ false }}
     runs-on: ${{ matrix.runner }}
 
     strategy:
@@ -225,6 +228,7 @@ jobs:
           path: ${{ matrix.dmg_name }}
 
   build-mac-dmg:
+    if: ${{ false }}
     runs-on: macos-latest
 
     steps:
@@ -316,6 +320,7 @@ jobs:
             build/EquilotlCli-universal
 
   build-windows:
+    if: ${{ false }}
     runs-on: windows-latest
 
     steps:
@@ -396,6 +401,7 @@ jobs:
             windows-signed/EquilotlCli-x64.exe
 
   build-windows-arm64:
+    if: ${{ false }}
     runs-on: windows-latest # No ARM64 runner needed, the ARM64 binaries are cross-compiled
 
     steps:
@@ -475,6 +481,7 @@ jobs:
             windows-signed/EquilotlCli-arm64.exe
 
   release:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     needs:
       [
