@@ -15,14 +15,16 @@ import (
 	g "github.com/AllenDang/giu"
 	"github.com/AllenDang/imgui-go"
 	"image"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
 
 func secureGUI() {
 	g.SetDefaultFontSize(16)
-	win = g.NewMasterWindow(branding.Project.InstallerName, 900, 680, 0)
-	win.SetSizeLimits(780, 640, g.DontCare, g.DontCare)
+	win = g.NewMasterWindow(branding.Project.InstallerName, 900, 740, 0)
+	win.SetSizeLimits(780, 700, g.DontCare, g.DontCare)
 	applyBrandTheme()
 	icon, _, iconErr := image.Decode(bytes.NewReader(iconBytes))
 	if iconErr == nil {
@@ -30,14 +32,33 @@ func secureGUI() {
 	}
 	var mu sync.Mutex
 	state, detail, ownership, busy := "Looking for Discord", "", "", true
+	channels := []struct{ name, branch, directory string }{
+		{"Discord Stable", "stable", "Discord"},
+		{"Discord PTB", "ptb", "DiscordPTB"},
+		{"Discord Canary", "canary", "DiscordCanary"},
+	}
+	selectedChannel := 0
+	detected := [3]bool{}
 	var chosen *DiscordInstall
 	set := func(s, d string) { mu.Lock(); state, detail = s, d; mu.Unlock(); g.Update() }
 	discover := func() {
-		found := FindDiscords()
-		var target *DiscordInstall
-		status, message := "Discord not found", "Install Discord Stable for Windows, then select Refresh."
-		if len(found) == 1 {
-			target = found[0].(*DiscordInstall)
+		mu.Lock()
+		index := selectedChannel
+		mu.Unlock()
+		var installs [3]*DiscordInstall
+		var available [3]bool
+		if local := os.Getenv("LOCALAPPDATA"); local != "" {
+			for i, channel := range channels {
+				installs[i] = ParseDiscord(filepath.Join(local, channel.directory), channel.branch)
+				available[i] = installs[i] != nil
+			}
+		}
+		target := installs[index]
+		status, message := "Discord not found", "Install the selected Discord channel, then select Refresh."
+		if index != 0 {
+			status = "Channel not yet supported"
+			message = channels[index].name + " can be selected and detected, but this beta's signed core supports Discord Stable only. Installation is disabled until this channel has verified release compatibility."
+		} else if target != nil {
 			status = target.ownership()
 			switch status {
 			case "Not installed":
@@ -54,8 +75,20 @@ func secureGUI() {
 		}
 		mu.Lock()
 		chosen, ownership, state, detail, busy = target, status, status, message, false
+		detected = available
 		mu.Unlock()
 		g.Update()
+	}
+	chooseChannel := func(index int) {
+		mu.Lock()
+		if busy {
+			mu.Unlock()
+			return
+		}
+		selectedChannel, chosen, busy = index, nil, true
+		state, detail, ownership = "Looking for Discord", "", ""
+		mu.Unlock()
+		go discover()
 	}
 	launch := func(operation string) {
 		mu.Lock()
@@ -71,6 +104,8 @@ func secureGUI() {
 			var err error
 			if target == nil {
 				err = errors.New("select a supported Discord installation first")
+			} else if target.branch != "stable" {
+				err = errors.New("this signed beta supports Discord Stable only")
 			} else if err = requireLive(); err == nil {
 				switch operation {
 				case "Uninstall":
@@ -115,8 +150,9 @@ func secureGUI() {
 	win.Run(func() {
 		mu.Lock()
 		s, d, owned, working, target := state, detail, ownership, busy, chosen
+		channelIndex, available := selectedChannel, detected
 		mu.Unlock()
-		eligible := target != nil && requireLive() == nil
+		eligible := target != nil && target.branch == "stable" && requireLive() == nil
 		canInstall := eligible && (owned == "Not installed" || owned == "Installed")
 		canRepair := eligible && (owned == "Installed" || owned == "Repair available")
 		canRemove := eligible && (owned == "Installed" || owned == "Repair available")
@@ -124,7 +160,16 @@ func secureGUI() {
 		if owned == "Installed" {
 			installLabel = "Update EvenCord"
 		}
-		location := "No supported installation selected"
+		choices := make([]g.Widget, len(channels))
+		for i, channel := range channels {
+			index := i
+			label := channel.name
+			if !available[i] {
+				label += " (not detected)"
+			}
+			choices[i] = g.RadioButton(label, channelIndex == i).OnChange(func() { chooseChannel(index) })
+		}
+		location := "Selected channel is not installed"
 		if target != nil {
 			location = target.path
 		}
@@ -135,7 +180,8 @@ func secureGUI() {
 				g.Column(g.Style().SetFontSize(30).To(g.Label("EvenCord Installer")), g.Label("Make Discord your own.")),
 			)),
 			g.Dummy(0, 24),
-			g.Style().SetFontSize(20).To(g.Label("Discord Stable")),
+			g.Style().SetFontSize(20).To(g.Label("Choose your Discord installation")),
+			g.Row(choices...),
 			g.Label(location).Wrapped(true),
 			g.Dummy(0, 12),
 			g.Child().Size(g.Auto, 138).Border(true).Layout(
