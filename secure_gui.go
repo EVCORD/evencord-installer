@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"equilotl/branding"
 	"equilotl/buildinfo"
+	"equilotl/internal/install"
 	"equilotl/internal/release"
 	"errors"
 	g "github.com/AllenDang/giu"
@@ -23,8 +24,8 @@ import (
 
 func secureGUI() {
 	g.SetDefaultFontSize(16)
-	win = g.NewMasterWindow(branding.Project.InstallerName, 900, 740, 0)
-	win.SetSizeLimits(780, 700, g.DontCare, g.DontCare)
+	win = g.NewMasterWindow(branding.Project.InstallerName, 900, 780, 0)
+	win.SetSizeLimits(780, 740, g.DontCare, g.DontCare)
 	applyBrandTheme()
 	icon, _, iconErr := image.Decode(bytes.NewReader(iconBytes))
 	if iconErr == nil {
@@ -55,10 +56,7 @@ func secureGUI() {
 		}
 		target := installs[index]
 		status, message := "Discord not found", "Install the selected Discord channel, then select Refresh."
-		if index != 0 {
-			status = "Channel not yet supported"
-			message = channels[index].name + " can be selected and detected, but this beta's signed core supports Discord Stable only. Installation is disabled until this channel has verified release compatibility."
-		} else if target != nil {
+		if target != nil {
 			status = target.ownership()
 			switch status {
 			case "Not installed":
@@ -104,8 +102,6 @@ func secureGUI() {
 			var err error
 			if target == nil {
 				err = errors.New("select a supported Discord installation first")
-			} else if target.branch != "stable" {
-				err = errors.New("this signed beta supports Discord Stable only")
 			} else if err = requireLive(); err == nil {
 				switch operation {
 				case "Uninstall":
@@ -152,7 +148,7 @@ func secureGUI() {
 		s, d, owned, working, target := state, detail, ownership, busy, chosen
 		channelIndex, available := selectedChannel, detected
 		mu.Unlock()
-		eligible := target != nil && target.branch == "stable" && requireLive() == nil
+		eligible := target != nil && requireLive() == nil
 		canInstall := eligible && (owned == "Not installed" || owned == "Installed")
 		canRepair := eligible && (owned == "Installed" || owned == "Repair available")
 		canRemove := eligible && (owned == "Installed" || owned == "Repair available")
@@ -183,6 +179,7 @@ func secureGUI() {
 			g.Style().SetFontSize(20).To(g.Label("Choose your Discord installation")),
 			g.Row(choices...),
 			g.Label(location).Wrapped(true),
+			g.Label("EvenCord settings: "+install.DataRoot(BaseDir, channels[channelIndex].branch)).Wrapped(true),
 			g.Dummy(0, 12),
 			g.Child().Size(g.Auto, 138).Border(true).Layout(
 				g.Style().SetFontSize(20).To(g.Label(s)),
@@ -203,7 +200,7 @@ func secureGUI() {
 				}, nil},
 			),
 			g.Dummy(0, 22), g.Separator(), g.Dummy(0, 10),
-			g.Label("Windows x64 / Discord Stable / Beta "+buildinfo.InstallerTag),
+			g.Label("Windows x64 / Stable, PTB and Canary / Beta "+buildinfo.InstallerTag),
 			g.Label("Close Discord before installing. Uninstall keeps your settings.").Wrapped(true),
 			g.Label("Based on Equilotl, Equicord and Vencord.").Wrapped(true),
 		)

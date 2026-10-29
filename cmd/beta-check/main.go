@@ -16,6 +16,7 @@ import (
 )
 
 func run() error {
+	channel := flag.String("channel", "stable", "Fixture Discord channel")
 	bundle := flag.String("bundle", "", "Signed local bundle")
 	previousBundle := flag.String("previous-bundle", "", "Earlier signed public bundle to install before upgrading the disposable fixture")
 	component := flag.String("component", "core", "Component to verify")
@@ -89,9 +90,9 @@ func run() error {
 		if _, e = os.Stat(filepath.Join(app, "EVENCORD_DISPOSABLE_FIXTURE")); e != nil {
 			return fmt.Errorf("fixture marker required")
 		}
-		target := install.Target{Resources: filepath.Join(app, "resources"), Channel: "stable"}
-		engine := install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader}
-		root := filepath.Join(out, "data")
+		target := install.Target{Resources: filepath.Join(app, "resources"), Channel: *channel}
+		engine := install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
+		root := install.DataRoot(filepath.Join(out, "data"), *channel)
 		if e = os.MkdirAll(root, 0700); e != nil {
 			return e
 		}

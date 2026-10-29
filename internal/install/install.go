@@ -38,6 +38,7 @@ type Engine struct {
 	Trust                      release.Trust
 	TrustData, Runtime, Loader []byte
 	AfterStep                  func(string) error
+	ChannelArchives            map[string][]string
 }
 
 const ownerName = "evencord-install.json"
@@ -61,7 +62,7 @@ func (e Engine) step(name string) error {
 	return nil
 }
 func Validate(t Target) error {
-	if t.Channel != "stable" || filepath.Base(t.Resources) != "resources" || !appVersion.MatchString(filepath.Base(filepath.Dir(t.Resources))) {
+	if (t.Channel != "stable" && t.Channel != "ptb" && t.Channel != "canary") || filepath.Base(t.Resources) != "resources" || !appVersion.MatchString(filepath.Base(filepath.Dir(t.Resources))) {
 		return errors.New("unsupported Discord channel or installation layout")
 	}
 	if err := SafePath(t.Resources); err != nil {
@@ -74,10 +75,10 @@ func Validate(t Target) error {
 	var info struct {
 		Channel string `json:"releaseChannel"`
 	}
-	if json.Unmarshal(b, &info) != nil || info.Channel != "stable" {
-		return errors.New("Discord Stable build metadata is required")
+	if json.Unmarshal(b, &info) != nil || info.Channel != t.Channel {
+		return errors.New("Discord build metadata must match the selected channel")
 	}
-	exe, err := os.ReadFile(filepath.Join(t.Resources, "..", "Discord.exe"))
+	exe, err := os.ReadFile(filepath.Join(t.Resources, "..", map[string]string{"stable": "Discord.exe", "ptb": "DiscordPTB.exe", "canary": "DiscordCanary.exe"}[t.Channel]))
 	if err != nil {
 		return err
 	}
@@ -291,6 +292,26 @@ func (e Engine) Activate(root string, v release.Verified, staged string) error {
 	}
 	return Atomic(pointer, v.Envelope)
 }
+func (e Engine) hostAllowed(channel, hash string) bool {
+	if e.ChannelArchives == nil {
+		return channel == "stable"
+	}
+	for _, approved := range e.ChannelArchives[channel] {
+		if hash == approved {
+			return true
+		}
+	}
+	return false
+}
+func DataRoot(base, channel string) string {
+	if channel == "stable" {
+		return base
+	}
+	if channel == "ptb" || channel == "canary" {
+		return filepath.Join(base, "channels", channel)
+	}
+	panic("unsupported Discord channel")
+}
 func (e Engine) Install(t Target, root string, v release.Verified, staged string) error {
 	if err := Validate(t); err != nil {
 		return err
@@ -323,7 +344,7 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 		}
 		compatible := false
 		for _, approved := range v.Manifest.Archives {
-			if h == approved {
+			if h == approved && e.hostAllowed(t.Channel, h) {
 				compatible = true
 			}
 		}
@@ -344,7 +365,7 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 	}
 	approved := false
 	for _, h := range v.Manifest.Archives {
-		if h == original {
+		if h == original && e.hostAllowed(t.Channel, h) {
 			approved = true
 		}
 	}

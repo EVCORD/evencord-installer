@@ -62,6 +62,45 @@ func newFixture(t *testing.T) fixture {
 	}
 	return fixture{engine, Target{r, "stable"}, filepath.Join(base, "data"), stage, v, private}
 }
+
+func TestChannelIsolation(t *testing.T) {
+	for _, channel := range []string{"stable", "ptb", "canary"} {
+		t.Run(channel, func(t *testing.T) {
+			f := newFixture(t)
+			f.target.Channel = channel
+			exe, err := os.ReadFile(filepath.Join(f.target.Resources, "..", "Discord.exe"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			name := map[string]string{"stable": "Discord.exe", "ptb": "DiscordPTB.exe", "canary": "DiscordCanary.exe"}[channel]
+			if err = os.WriteFile(filepath.Join(f.target.Resources, "..", name), exe, 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(filepath.Join(f.target.Resources, "build_info.json"), []byte(`{"releaseChannel":"`+channel+`"}`), 0600); err != nil {
+				t.Fatal(err)
+			}
+			f.engine.ChannelArchives = map[string][]string{channel: f.verified.Manifest.Archives}
+			parent := f.root
+			f.root = DataRoot(parent, channel)
+			if channel != "stable" && f.root == parent {
+				t.Fatal("channel shares Stable data")
+			}
+			if err = f.engine.Install(f.target, f.root, f.verified, f.stage); err != nil {
+				t.Fatal(err)
+			}
+			if err = f.engine.Uninstall(f.target); err != nil {
+				t.Fatal(err)
+			}
+			f.engine.ChannelArchives = map[string][]string{channel: {strings.Repeat("f", 64)}}
+			if err = f.engine.Install(f.target, f.root, f.verified, f.stage); err == nil {
+				t.Fatal("wrong channel archive accepted")
+			}
+		})
+	}
+	if DataRoot("data", "ptb") == DataRoot("data", "canary") {
+		t.Fatal("channel profiles overlap")
+	}
+}
 func (f fixture) install(t *testing.T) {
 	t.Helper()
 	if err := f.engine.Install(f.target, f.root, f.verified, f.stage); err != nil {

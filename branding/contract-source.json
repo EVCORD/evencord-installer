@@ -1,15 +1,16 @@
 {
     "repository": "alrimii/evencord",
     "repositoryId": 1438489516,
-    "commit": "80b230c45817a94f4d799b66435d302b07b4d212",
+    "commit": "b6d2d499a41dd653cb125726ec3c8e38229555f4",
     "path": "branding/project.json",
-    "sha256": "7c9e51a6eff9cd1f39bdbfc2e40e8f111ae358aece6d7f9df8212bdc20162dff",
+    "sha256": "7096d81ddddacfbba0304d2d163e8c43bc2a6282a4feaaef2a849aa1e30a2f81",
     "hashFormat": "SHA-256 of committed Git blobs (LF line endings)",
     "protocolFiles": {
-        "branding/project.json": "7c9e51a6eff9cd1f39bdbfc2e40e8f111ae358aece6d7f9df8212bdc20162dff",
+        "branding/project.json": "7096d81ddddacfbba0304d2d163e8c43bc2a6282a4feaaef2a849aa1e30a2f81",
         "branding/trust.json": "97b5ee86620ad367e0722a76ab0e2696c0e1606e290addde2ba8b439e24fa4c1",
         "branding/runtime.cjs": "bac39b92082823b4d0d770942e2175059d0332fc29583a47c8923366a28acf61",
         "branding/loader.cjs": "a2af69c43c638780da7654c3e2a977582235b9a09e12fa382669ff7b03fafe09",
-        "branding/host.cjs": "ef7efd3785d772c3de7737b59a8ce1efdb0b235d2e8fde13410e8dd0790f4ec3"
+        "branding/host.cjs": "c73e8cd33e0d962e9d7e22d369d3e202b3f99ef8cc1e5c5308f8d88ed0080a51",
+        "branding/discord-compatibility.json": "8f521b507df57842b0dcae016ea13d7675863417ed3653630f0972560287f62c"
     }
 }

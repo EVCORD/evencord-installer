@@ -47,11 +47,11 @@ type DiscordInstall struct {
 }
 
 func secureEngine() install.Engine {
-	return install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader}
+	return install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
 }
 func (di *DiscordInstall) target() (install.Target, error) {
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || di.branch != "stable" || di.isSystemElectron || di.isFlatpak {
-		return install.Target{}, errors.New("only Windows x64 Discord Stable is supported")
+	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || (di.branch != "stable" && di.branch != "ptb" && di.branch != "canary") || di.isSystemElectron || di.isFlatpak {
+		return install.Target{}, errors.New("only Windows x64 Discord Stable, PTB and Canary are supported")
 	}
 	t := install.Target{Resources: filepath.Dir(di.appPath), Channel: di.branch}
 	return t, install.Validate(t)
@@ -69,7 +69,7 @@ func (di *DiscordInstall) patch() error {
 			return err
 		}
 	}
-	if err = secureEngine().Install(target, BaseDir, approvedRelease, stagedPayload); err != nil {
+	if err = secureEngine().Install(target, install.DataRoot(BaseDir, di.branch), approvedRelease, stagedPayload); err != nil {
 		return err
 	}
 	clearStagedPayload()
