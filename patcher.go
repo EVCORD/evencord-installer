@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"equilotl/branding"
 	"errors"
 	"os"
 	"os/exec"
@@ -24,32 +25,26 @@ var EquicordDirectory string
 var ErrAlreadyReported = errors.New("already reported")
 
 func init() {
-	if dir := os.Getenv("EQUICORD_USER_DATA_DIR"); dir != "" {
-		Log.Debug("Using EQUICORD_USER_DATA_DIR")
+	prefix := branding.Project.Storage.EnvironmentPrefix
+	if dir := os.Getenv(prefix + "_USER_DATA_DIR"); dir != "" {
 		BaseDir = dir
 	} else if dir = os.Getenv("DISCORD_USER_DATA_DIR"); dir != "" {
-		Log.Debug("Using DISCORD_USER_DATA_DIR/../EquicordData")
-		BaseDir = path.Join(dir, "..", "EquicordData")
+		BaseDir = path.Join(dir, "..", branding.Project.Storage.PortableDirectory)
 	} else {
-		Log.Debug("Using UserConfig")
-		BaseDir = appdir.New("Equicord").UserConfig()
+		BaseDir = appdir.New(branding.Project.Storage.Directory).UserConfig()
 	}
-	dir := os.Getenv("EQUICORD_DIRECTORY")
-	if dir == "" {
-		if !ExistsFile(BaseDir) {
-			BaseDirErr = os.Mkdir(BaseDir, 0755)
-			if BaseDirErr != nil {
-				Log.Error("Failed to create", BaseDir, BaseDirErr)
-			} else {
-				BaseDirErr = FixOwnership(BaseDir)
-			}
+	EquicordDirectory = os.Getenv(prefix + "_DIRECTORY")
+	if EquicordDirectory == "" {
+		EquicordDirectory = path.Join(BaseDir, branding.Project.Storage.Payload)
+	}
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return
+	}
+	if !ExistsFile(BaseDir) {
+		BaseDirErr = os.MkdirAll(BaseDir, 0755)
+		if BaseDirErr == nil {
+			BaseDirErr = FixOwnership(BaseDir)
 		}
-	}
-	if dir != "" {
-		Log.Debug("Using EQUICORD_DIRECTORY")
-		EquicordDirectory = dir
-	} else {
-		EquicordDirectory = path.Join(BaseDir, "equicord.asar")
 	}
 }
 
@@ -66,6 +61,9 @@ type DiscordInstall struct {
 //region Patch
 
 func patchAppAsar(dir string, isSystemElectron bool) (err error) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	appAsar := path.Join(dir, "app.asar")
 	_appAsar := path.Join(dir, "_app.asar")
 
@@ -110,6 +108,9 @@ func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 }
 
 func (di *DiscordInstall) patch() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	Log.Info("Patching " + di.path + "...")
 	if LatestHash != InstalledHash {
 		if err := InstallLatestBuilds(); err != nil {
@@ -206,6 +207,9 @@ func isEquicordLoaderAppAsar(appAsar string) (bool, error) {
 }
 
 func cleanupDesyncedPatchedInstall(dir string, isSystemElectron bool) (bool, error) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Repair {
+		return false, ErrDistributionDisabled
+	}
 	appAsar := path.Join(dir, "app.asar")
 	_appAsar := path.Join(dir, "_app.asar")
 
@@ -231,6 +235,9 @@ func cleanupDesyncedPatchedInstall(dir string, isSystemElectron bool) (bool, err
 }
 
 func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	appAsar := path.Join(dir, "app.asar")
 	appAsarTmp := path.Join(dir, "app.asar.tmp")
 	_appAsar := path.Join(dir, "_app.asar")
@@ -293,6 +300,9 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 }
 
 func (di *DiscordInstall) unpatch() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	Log.Info("Unpatching " + di.path + "...")
 
 	PreparePatch(di)

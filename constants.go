@@ -7,18 +7,24 @@
 package main
 
 import (
+	"equilotl/branding"
 	"equilotl/buildinfo"
+	"errors"
 	"image/color"
 )
 
-const ReleaseUrl = "https://api.github.com/repos/Equicord/Equicord/releases/latest"
-const ReleaseUrlFallback = "https://equicord.org/releases/equicord"
-const InstallerReleaseUrl = "https://api.github.com/repos/Equicord/Equilotl/releases/latest"
-const InstallerReleaseUrlFallback = "https://equicord.org/releases/equilotl"
+var ReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Core.Slug + "/releases/latest"
 
-var UserAgent = "Equilotl/" + buildinfo.InstallerGitHash + " (https://github.com/Equicord/Equilotl)"
+const ReleaseUrlFallback = ""
 
-const SupportUrl = "https://equicord.org/discord"
+var InstallerReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Installer.Slug + "/releases/latest"
+
+const InstallerReleaseUrlFallback = ""
+
+var UserAgent = branding.Project.InstallerName + "/" + buildinfo.InstallerGitHash + " (https://github.com/" + branding.Project.Repositories.Installer.Slug + ")"
+
+var SupportUrl = branding.Project.Links.Support
+var ErrDistributionDisabled = errors.New("EvenCord installation, repair, removal and updates are disabled until Phase 3 safety work is complete.")
 
 var (
 	DiscordGreen        = color.RGBA{0, 133, 69, 0xff}

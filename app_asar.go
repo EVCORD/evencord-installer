@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"equilotl/branding"
 	"fmt"
 	"os"
 	"strconv"
@@ -22,6 +23,9 @@ type asarEntry struct {
 // Ported from https://github.com/GeopJr/asar-cr/blob/cd7695b7c913bf921d9fb6600eaeb1400e3ba225/src/asar-cr/pack.cr#L61
 
 func WriteAppAsar(outFile string, equicordAsarPath string) error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	header := make(map[string]map[string]asarEntry)
 	files := make(map[string]asarEntry)
 	header["files"] = files

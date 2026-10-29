@@ -6,3 +6,6 @@ vencord
 vendor
 build
 .DS_Store
+
+.tools/
+.cache/

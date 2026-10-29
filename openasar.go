@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"equilotl/branding"
 	"errors"
 	"io"
 	"net/http"
@@ -64,6 +65,9 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 }
 
 func (di *DiscordInstall) InstallOpenAsar() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	PreparePatch(di)
 
 	if di.IsOpenAsar() {
@@ -121,6 +125,9 @@ func (di *DiscordInstall) InstallOpenAsar() error {
 }
 
 func (di *DiscordInstall) UninstallOpenAsar() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	PreparePatch(di)
 
 	dir := path.Join(di.appPath, "..")

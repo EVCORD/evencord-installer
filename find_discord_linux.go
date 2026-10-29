@@ -7,6 +7,7 @@
 package main
 
 import (
+	"equilotl/branding"
 	"errors"
 	"io/fs"
 	"os"
@@ -239,7 +240,11 @@ func FindDiscords() []any {
 	return discords
 }
 
-func PreparePatch(di *DiscordInstall) {}
+func PreparePatch(di *DiscordInstall) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return
+	}
+}
 
 // FixOwnership fixes file ownership on Linux
 func FixOwnership(p string) error {

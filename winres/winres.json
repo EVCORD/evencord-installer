@@ -9,7 +9,7 @@
   "RT_MANIFEST": {
     "#1": {
       "0409": {
-        "description": "An Installer for the Equicord Discord Mod",
+        "description": "EvenCord Installer",
         "minimum-os": "win10",
         "execution-level": "as invoker",
         "dpi-awareness": "system"
@@ -22,12 +22,18 @@
         "info": {
           "0409": {
             "Comments": "Comments",
-            "CompanyName": "Equicord",
-            "FileDescription": "Equilotl",
-            "LegalCopyright": "© 2026 Vencord and Equicord contributors - GPL3.0",
-            "ProductName": "Equilotl",
-            "ProductVersion": ""
+            "CompanyName": "EvenCord contributors",
+            "FileDescription": "EvenCord Installer",
+            "LegalCopyright": "\u00a9 2026 Vencord and Equicord contributors - GPL3.0; additional branding copyright 2026 EvenCord contributors.",
+            "ProductName": "EvenCord Installer",
+            "ProductVersion": "0.1.0-dev.0",
+            "OriginalFilename": "EvenCordInstaller-x64.exe"
           }
+        },
+        "fixed": {
+          "file_version": "0.1.0.0",
+          "product_version": "0.1.0.0",
+          "flags": "Prerelease"
         }
       }
     }

@@ -1,13 +1,17 @@
+# EvenCord foundation status
+
+Phase 2 branding and identity are implemented. See [PHASE2.md](PHASE2.md). The following Phase 1 record is historical; its references to unchanged runtime branding describe the initial foundation, not the current source.
+
 # Phase 1 installer foundation
 
-This is [alrimii/discord-mod-installer](https://github.com/alrimii/discord-mod-installer), a history-preserving fork of [Equicord/Equilotl](https://github.com/Equicord/Equilotl), itself derived from [Vencord/Installer](https://github.com/Vencord/Installer). It is not an official upstream release. The repository name is temporary, and existing licenses, copyright notices, and contributor history are retained.
+This is [alrimii/evencord-installer](https://github.com/alrimii/evencord-installer), a history-preserving fork of [Equicord/Equilotl](https://github.com/Equicord/Equilotl), itself derived from [Vencord/Installer](https://github.com/Vencord/Installer). It is not an official upstream release. The repository name is temporary, and existing licenses, copyright notices, and contributor history are retained.
 
 ## Repository relationships
 
-- Core fork: [alrimii/discord-mod-core](https://github.com/alrimii/discord-mod-core).
+- Core fork: [alrimii/evencord](https://github.com/alrimii/evencord).
 - Installer checkout: `C:\Users\MainRec\Desktop\DiscordModFoundation\installer`.
 - Core checkout: `C:\Users\MainRec\Desktop\DiscordModFoundation\core`.
-- Installer `origin`: `https://github.com/alrimii/discord-mod-installer.git`.
+- Installer `origin`: `https://github.com/alrimii/evencord-installer.git`.
 - Installer `upstream`: `https://github.com/Equicord/Equilotl.git`.
 - Installer starting commit: `4f204a1b8e3e6e1c79f5f4a09591465fc4a97223`.
 
@@ -27,7 +31,7 @@ The planned initial target is existing Discord Stable on Windows x64. No standal
 
 Equilotl is the direct upstream for the installer; Equicord is the sole direct upstream for the companion core. Future updates require review branches, explicit upstream SHAs, conflict reports, preserved merge ancestry, and human approval. No automatic synchronization is configured. Do not squash upstream synchronization merges or force-push public main.
 
-Before distribution, separately review loader ownership and directory/archive compatibility, repair error propagation, verified downloads, self-update behavior, data isolation, and release destinations. Never reuse upstream release binaries as this project's own builds. Installation/update endpoints and repository identities must agree with the companion core before any public release. See the [core foundation plan](https://github.com/alrimii/discord-mod-core/blob/main/FOUNDATION.md).
+Before distribution, separately review loader ownership and directory/archive compatibility, repair error propagation, verified downloads, self-update behavior, data isolation, and release destinations. Never reuse upstream release binaries as this project's own builds. Installation/update endpoints and repository identities must agree with the companion core before any public release. See the [core foundation plan](https://github.com/alrimii/evencord/blob/main/FOUNDATION.md).
 
 The next step is approval of the final project name and branding configuration. Installer redesign, updater changes, signing, release publishing, and enabling CI/CD remain outside this phase.
 

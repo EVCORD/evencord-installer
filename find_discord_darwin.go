@@ -7,6 +7,7 @@
 package main
 
 import (
+	"equilotl/branding"
 	"os"
 	path "path/filepath"
 	"strings"
@@ -71,7 +72,11 @@ func FindDiscords() []any {
 	return discords
 }
 
-func PreparePatch(di *DiscordInstall) {}
+func PreparePatch(di *DiscordInstall) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return
+	}
+}
 
 func FixOwnership(_ string) error {
 	return nil

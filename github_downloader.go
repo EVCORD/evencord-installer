@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"equilotl/branding"
 	"errors"
 	"fmt"
 	"io"
@@ -37,6 +38,9 @@ var LatestHash = "Unknown"
 var IsDevInstall bool
 
 func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
+	if !branding.Project.Capabilities.Distribution {
+		return nil, ErrDistributionDisabled
+	}
 	Log.Debug("Fetching", url)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -59,7 +63,7 @@ func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
 		isRateLimitedOrBlocked := res.StatusCode == 401 || res.StatusCode == 403 || res.StatusCode == 429
 		triedFallback := url == fallbackUrl
 
-		if isRateLimitedOrBlocked && !triedFallback {
+		if fallbackUrl != "" && isRateLimitedOrBlocked && !triedFallback {
 			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback url %s", url, res.StatusCode, fallbackUrl))
 			return GetGithubRelease(fallbackUrl, fallbackUrl)
 		}
@@ -81,8 +85,13 @@ func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
 
 func InitGithubDownloader() {
 	GithubDoneChan = make(chan bool, 1)
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		GithubError = ErrDistributionDisabled
+		GithubDoneChan <- false
+		return
+	}
 
-	IsDevInstall = os.Getenv("EQUICORD_DEV_INSTALL") == "1"
+	IsDevInstall = os.Getenv("EVENCORD_DEV_INSTALL") == "1"
 	Log.Debug("Is Dev Install: ", IsDevInstall)
 	if IsDevInstall {
 		GithubDoneChan <- true
@@ -128,9 +137,9 @@ func InitGithubDownloader() {
 		return
 	}
 
-	Log.Debug("Found existing Equicord Install. Checking for hash...")
+	Log.Debug("Found an EvenCord payload candidate. Checking its build identity...")
 
-	re := regexp.MustCompile(`// Equicord (\w+)`)
+	re := regexp.MustCompile(`// EvenCord (\w+)`)
 	match := re.FindSubmatch(b)
 	if match != nil {
 		InstalledHash = string(match[1])
@@ -143,6 +152,9 @@ func InitGithubDownloader() {
 }
 
 func installLatestBuilds() (retErr error) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return ErrDistributionDisabled
+	}
 	Log.Debug("Installing latest builds...")
 
 	if IsDevInstall {
@@ -152,7 +164,7 @@ func installLatestBuilds() (retErr error) {
 
 	downloadUrl := ""
 	for _, ass := range ReleaseData.Assets {
-		if ass.Name == "desktop.asar" {
+		if ass.Name == branding.Project.Release.CoreAsset {
 			downloadUrl = ass.DownloadURL
 			break
 		}

@@ -7,6 +7,7 @@
 package main
 
 import (
+	"equilotl/branding"
 	"equilotl/buildinfo"
 	"errors"
 	"fmt"
@@ -22,6 +23,9 @@ var IsSelfOutdated = false
 var SelfUpdateCheckDoneChan = make(chan bool, 1)
 
 func init() {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
+		return
+	}
 	//goland:noinspection GoBoolExpressions
 	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
 		Log.Debug("Disabling self updater as this is not a release build")
@@ -46,39 +50,28 @@ func init() {
 }
 
 func GetInstallerDownloadLink() string {
-	const BaseUrl = "https://github.com/Equicord/Equilotl/releases/latest/download/"
-	switch runtime.GOOS {
-	case "windows":
-		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "EquilotlCli", "Equilotl")
-		if runtime.GOARCH == "arm64" {
-			filename += "-arm64"
-		}
-		return BaseUrl + filename + ".exe"
-	case "darwin":
-		switch runtime.GOARCH {
-		case "amd64":
-			return BaseUrl + "Equilotl-x64.dmg"
-		case "arm64":
-			return BaseUrl + "Equilotl-arm64.dmg"
-		default:
-			return ""
-		}
-	case "linux":
-		if runtime.GOARCH == "arm64" {
-			return BaseUrl + "EquilotlCli-linux-arm64"
-		}
-		return BaseUrl + "EquilotlCli-linux"
-	default:
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
 		return ""
 	}
+	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
+		return ""
+	}
+	filename := branding.Project.Release.InstallerGuiAsset
+	if buildinfo.UiType == buildinfo.UiTypeCli {
+		filename = branding.Project.Release.InstallerCliAsset
+	}
+	return "https://github.com/" + branding.Project.Repositories.Installer.Slug + "/releases/latest/download/" + filename
 }
 
 func CanUpdateSelf() bool {
 	//goland:noinspection GoBoolExpressions
-	return IsSelfOutdated && runtime.GOOS != "darwin"
+	return branding.Project.Capabilities.Distribution && branding.Project.Capabilities.SelfUpdate && IsSelfOutdated && runtime.GOOS != "darwin"
 }
 
 func UpdateSelf() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
+		return ErrDistributionDisabled
+	}
 	if !CanUpdateSelf() {
 		return errors.New("Cannot update self. Either no update available or macos")
 	}
@@ -103,7 +96,7 @@ func UpdateSelf() error {
 	}
 	defer res.Body.Close()
 
-	tmp, err := os.CreateTemp(ownExeDir, "EquilotlUpdate")
+	tmp, err := os.CreateTemp(ownExeDir, "EvenCordInstallerUpdate")
 	if err != nil {
 		return fmt.Errorf("Failed to create tempfile: %w", err)
 	}
@@ -112,7 +105,7 @@ func UpdateSelf() error {
 		_ = os.Remove(tmp.Name())
 	}()
 	if err = tmp.Chmod(0o755); err != nil {
-		return fmt.Errorf("Failed to chmod 755", tmp.Name()+":", err)
+		return fmt.Errorf("failed to chmod 755 %s: %w", tmp.Name(), err)
 	}
 
 	if _, err = io.Copy(tmp, res.Body); err != nil {
@@ -137,6 +130,9 @@ func UpdateSelf() error {
 }
 
 func DeleteOldExecutable() {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
+		return
+	}
 	ownExePath, err := os.Executable()
 	if err != nil {
 		return
@@ -155,6 +151,9 @@ func DeleteOldExecutable() {
 }
 
 func RelaunchSelf() error {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
+		return ErrDistributionDisabled
+	}
 	attr := new(os.ProcAttr)
 	attr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
 

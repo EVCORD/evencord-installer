@@ -1,98 +1,34 @@
-# Equilotl
+# EvenCord Installer
 
-> **Foundation fork, not a release.** This is `alrimii/discord-mod-installer`, a history-preserving fork of Equilotl. The project name is temporary. Installer behavior, branding, and download/update destinations are still upstream. GitHub Actions is disabled, and no fork binaries are published. The instructions and download links below describe upstream Equilotl, not a release of this fork. Read [FOUNDATION.md](FOUNDATION.md) before development or distribution.
+![EvenCord](branding/assets/banner.svg)
 
-The Equicord Installer allows you to install [Equicord, the cutest Discord Desktop client mod](https://github.com/Equicord/Equicord)
+The development foundation for an independent Windows x64 installer for [EvenCord](https://github.com/alrimii/evencord), based on [Equilotl](https://github.com/Equicord/Equilotl) and [Vencord Installer](https://github.com/Vencord/Installer).
 
-![image](https://i.imgur.com/oHN41ss.png)
+**No public installer downloads are available.** The GUI is a non-operational development preview. CLI metadata is available, but installation, removal, repair, OpenAsar changes, downloads and self-update are disabled in the backend. Do not enable these capabilities before Phase 3.
 
-## Usage
+## Development
 
-Windows
+The current source requires Go 1.26.2. The GUI additionally requires the inherited Windows CGO toolchain. Windows resources use the existing go-winres tool. Keep dependency/tool caches in this checkout when working alongside other development environments.
 
-| | X64 | ARM64 |
-| --- | --- | --- |
-| GUI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.exe) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-arm64.exe) |
-| CLI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli.exe) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-arm64.exe) |
+    go build -tags cli -o build/EvenCordInstallerCli-x64.exe .
+    go run ./cmd/brand-resources
+    go-winres make --in build/winres.json --arch amd64
+    go build -tags "static gui" -ldflags "-H=windowsgui" -o build/EvenCordInstaller-x64.exe .
 
-MacOS
+For CLI resource metadata, pass -cli to the resource generator before embedding resources and building the CLI. These commands compile source; they do not install the mod. Do not execute installation or repair flows during Phase 2.
 
-| | Universal | X64 | ARM64 |
-| --- | --- | --- | --- |
-| GUI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.dmg) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-x64.dmg) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-arm64.dmg) |
-| CLI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-universal) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-x64) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-arm64) |
+The Go module remains equilotl for upstream compatibility. Component versioning is independent of the shared branding contract. GitHub Actions and inherited publishing jobs remain disabled.
 
-The CLI builds are plain binaries, so run `chmod +x <file>` after downloading.
+## Identity and safety
 
-Linux
+See [branding/README.md](branding/README.md), [FOUNDATION.md](FOUNDATION.md), and [PHASE2.md](PHASE2.md). The intended payload is evencord.asar in the EvenCord data directory; it is not downloaded or written by this phase.
 
-| | X64 | ARM64 |
-| --- | --- | --- |
-| Combined GUI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-arm64) |
-| X11 GUI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-x11) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-x11-arm64) |
-| Wayland GUI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-wayland) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-wayland-arm64) |
-| CLI | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-linux) | [Download](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-linux-arm64) |
+Existing _app.asar files indicate a modified Discord installation, not EvenCord ownership. Loader recognition, safe switching, recovery, verified downloads and signing require Phase 3 work.
 
+## Support and attribution
 
-## Building from source
+Support information: https://github.com/alrimii/evencord#support. No separate support server, domain or cloud service is operated by this project. Do not seek support for this fork from upstream maintainers.
 
-### Prerequisites
+All upstream history, source headers and [GPL license](LICENSE) are retained. Copyright remains with Vendicated, Vencord contributors, Equicord contributors and the respective original authors; new branding contributions are credited to EvenCord contributors. The original artwork is GPL-3.0-or-later.
 
-You need to install the [Go programming language](https://go.dev/doc/install) and GCC, the GNU Compiler Collection (MinGW on Windows)
-
-<details>
-<summary>Additionally, if you're using Linux, you have to install some additional dependencies:</summary>
-
-#### Base dependencies
-
-```sh
-apt install -y pkg-config libsdl2-dev libglx-dev libgl1-mesa-dev
-dnf install pkg-config libGL-devel libXxf86vm-devel
-```
-
-#### X11 dependencies
-
-```sh
-apt install -y xorg-dev
-dnf install libXcursor-devel libXi-devel libXinerama-devel libXrandr-devel
-```
-
-#### Wayland dependencies
-
-```sh
-apt install -y libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
-dnf install wayland-devel libxkbcommon-devel wayland-protocols-devel extra-cmake-modules
-```
-
-</details>
-
-### Building
-
-#### Install dependencies
-
-```sh
-go mod tidy
-```
-
-#### Build the GUI
-
-##### Windows / Mac / Linux X11
-
-```sh
-make GUI=1
-```
-
-##### Linux Wayland
-
-```sh
-make GUI=1 WAYLAND=1
-```
-
-#### Build the CLI
-
-```
-go build --tags cli
-```
-
-You might want to pass some flags to this command to get a better build.
-See [the GitHub workflow](https://github.com/Equicord/Equilotl/blob/main/.github/workflows/release.yml) for what flags I pass or if you want more precise instructions
+EvenCord is independent and not affiliated with Discord Inc., Equicord or Vencord. The name remains subject to trademark clearance before public distribution.

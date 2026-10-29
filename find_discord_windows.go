@@ -7,6 +7,7 @@
 package main
 
 import (
+	"equilotl/branding"
 	"errors"
 	"os"
 	path "path/filepath"
@@ -103,6 +104,9 @@ func FindDiscords() []any {
 }
 
 func PreparePatch(di *DiscordInstall) {
+	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
+		return
+	}
 	killLock.Lock()
 	defer killLock.Unlock()
 

@@ -3,7 +3,7 @@
 PLATFORM 	?= $(shell go env GOOS)
 ARCH		?= $(shell go env GOARCH)
 
-VERSION 	?= $(shell git describe --tags --abbrev=0)
+VERSION 	?= 0.1.0-dev.0
 HASH 		:= $(shell git rev-parse --short HEAD | xargs)
 
 # "Developer ID Application: <name> (<team-id>)" or "-"
@@ -44,6 +44,14 @@ endif # GUI
 MACOS_ARCHS := $(ARCH)
 ifeq ($(ARCH),universal)
 MACOS_ARCHS := amd64 arm64
+endif
+
+ifeq ($(PLATFORM),windows)
+ifneq ($(ARCH),amd64)
+$(error EvenCord Phase 2 supports Windows x64 development builds only)
+endif
+else
+$(error EvenCord Phase 2 supports Windows x64 development builds only)
 endif
 
 all: build
@@ -102,14 +110,12 @@ else # GUI
 endif # GUI
 
 else ifeq ($(PLATFORM),windows) # PLATFORM
-	export GOROOT=/mingw64/lib/go
-	export GOPATH=/mingw64
-
-	go-winres make --arch $(ARCH) --product-version "git-tag"
+	go run ./cmd/brand-resources $(if $(filter 0,$(GUI)),-cli,)
+	go-winres make --in build/winres.json --arch $(ARCH) --product-version "0.1.0.0"
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) \
 		go build -v -tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/Equilotl$(POSTFIX)$(WINARCH).exe
+		-o build/EvenCordInstaller$(POSTFIX)-x64.exe
 
 else # PLATFORM
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) go build \
@@ -125,27 +131,8 @@ clean:
 
 help:
 	@printf '%s\n' \
-		'Usage: make <target> [OPTIONS]' \
-		'' \
-		'Targets:' \
-		'  help     Show this help page' \
-		'  build    Build the project (default)' \
-		'  clean    Remove build artifacts' \
-		'' \
-		'Options:' \
-		'  GUI=1       Build with GUI support' \
-		'  DMG=1       Build DMG for macOS' \
-		'  WAYLAND=1        Build with Wayland support for Linux' \
-		'  PLATFORM=<os>    Target platform (darwin, windows, linux)' \
-		'  ARCH=<arch>      Target architecture (amd64, arm64, 386, universal (macOS only))' \
-		'  CC=<cc> CXX=<c++>  C/C++ compilers, for a GUI build that cross-compiles' \
-		'                     (e.g. aarch64-w64-mingw32-clang for a Windows ARM64 GUI)' \
-		'  IDENTITY=<id>    Code signing identity for macOS (default: -)' \
-		'  VERSION=<ver>    Version string (default: latest git tag)' \
-		'' \
-		'Examples:' \
-		'  make clean' \
-		'  make PLATFORM=universal GUI=1' \
-		'  make PLATFORM=linux ARCH=amd64' \
-		'  make PLATFORM=windows ARCH=arm64' \
-		'  make GUI=1 VERSION="1.0.0"'
+		'EvenCord Phase 2: Windows x64 development builds only.' \
+		'make PLATFORM=windows ARCH=amd64 GUI=0' \
+		'make PLATFORM=windows ARCH=amd64 GUI=1' \
+		'Go, go-winres and a compatible CGO compiler (GUI) are required.' \
+		'VERSION defaults to 0.1.0-dev.0. Installation and distribution are disabled.'
