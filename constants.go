@@ -13,18 +13,18 @@ import (
 	"image/color"
 )
 
-var ReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Core.Slug + "/releases/latest"
+var ReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Core.Slug + "/releases?per_page=100"
 
 const ReleaseUrlFallback = ""
 
-var InstallerReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Installer.Slug + "/releases/latest"
+var InstallerReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Installer.Slug + "/releases?per_page=100"
 
 const InstallerReleaseUrlFallback = ""
 
 var UserAgent = branding.Project.InstallerName + "/" + buildinfo.InstallerGitHash + " (https://github.com/" + branding.Project.Repositories.Installer.Slug + ")"
 
 var SupportUrl = branding.Project.Links.Support
-var ErrDistributionDisabled = errors.New("EvenCord installation, repair, removal and updates are disabled until Phase 3 safety work is complete.")
+var ErrDistributionDisabled = errors.New("EvenCord distribution is disabled in this build.")
 
 var (
 	DiscordGreen        = color.RGBA{0, 133, 69, 0xff}

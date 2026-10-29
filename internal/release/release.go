@@ -59,8 +59,9 @@ type Manifest struct {
 	Artifact     Artifact `json:"artifact"`
 }
 type Trust struct {
-	Keys    map[string]string `json:"keys"`
-	Revoked []string          `json:"revoked"`
+	Channels []string          `json:"channels,omitempty"`
+	Keys     map[string]string `json:"keys"`
+	Revoked  []string          `json:"revoked"`
 }
 type Verified struct {
 	Manifest Manifest
@@ -69,7 +70,7 @@ type Verified struct {
 
 var hex40 = regexp.MustCompile("^[a-f0-9]{40}$")
 var hex64 = regexp.MustCompile("^[a-f0-9]{64}$")
-var versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+var versionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-beta\.(0|[1-9][0-9]*))?$`)
 
 func Decode(data []byte, target any) error {
 	d := json.NewDecoder(bytes.NewReader(data))
@@ -120,7 +121,7 @@ func Verify(data []byte, trust Trust, component string, now time.Time, freshness
 	} else if component != "core" {
 		return out, errors.New("unsupported component")
 	}
-	if m.Schema != 1 || m.Product != "evencord" || m.Component != component || m.Repository != repo || m.RepositoryID != id || m.Channel != "stable" || m.Platform != "win32" || m.Arch != "x64" || m.Discord != "stable" || m.Loader != 1 || m.Artifact.Name != name {
+	if m.Schema != 1 || m.Product != "evencord" || m.Component != component || m.Repository != repo || m.RepositoryID != id || !allowedChannel(trust, m.Channel) || (m.Channel == "beta") != strings.Contains(m.Version, "-beta.") || m.Platform != "win32" || m.Arch != "x64" || m.Discord != "stable" || m.Loader != 1 || m.Artifact.Name != name {
 		return out, errors.New("release identity or compatibility mismatch")
 	}
 	if !versionPattern.MatchString(m.Version) || m.Sequence < 1 || m.Sequence > 9007199254740991 || !hex40.MatchString(m.Source) || !hex40.MatchString(m.Upstream) || !hex64.MatchString(m.Artifact.SHA256) || m.Artifact.Size < 1 || m.Artifact.Size > MaxArtifact || len(m.Notes) > 16384 {
@@ -147,17 +148,37 @@ func Verify(data []byte, trust Trust, component string, now time.Time, freshness
 	}
 	return Verified{m, append([]byte(nil), data...)}, nil
 }
-func Compare(a, b string) (int, error) {
-	if !versionPattern.MatchString(a) || !versionPattern.MatchString(b) {
-		return 0, errors.New("stable versions must use major.minor.patch")
+func allowedChannel(trust Trust, channel string) bool {
+	if channel != "stable" && channel != "beta" {
+		return false
 	}
-	aa, bb := strings.Split(a, "."), strings.Split(b, ".")
-	for i := range aa {
-		x, e := strconv.ParseUint(aa[i], 10, 32)
+	if len(trust.Channels) == 0 {
+		return channel == "stable"
+	}
+	for _, c := range trust.Channels {
+		if c == channel {
+			return true
+		}
+	}
+	return false
+}
+func Compare(a, b string) (int, error) {
+	aa, bb := versionPattern.FindStringSubmatch(a), versionPattern.FindStringSubmatch(b)
+	if aa == nil || bb == nil {
+		return 0, errors.New("versions must use major.minor.patch or major.minor.patch-beta.N")
+	}
+	for i := 1; i <= 4; i++ {
+		parse := func(v string) (uint64, error) {
+			if v == "" {
+				return 1 << 32, nil
+			}
+			return strconv.ParseUint(v, 10, 32)
+		}
+		x, e := parse(aa[i])
 		if e != nil {
 			return 0, e
 		}
-		y, e := strconv.ParseUint(bb[i], 10, 32)
+		y, e := parse(bb[i])
 		if e != nil {
 			return 0, e
 		}
@@ -175,7 +196,7 @@ func Advance(next, old Manifest) error {
 	if e != nil {
 		return e
 	}
-	if next.Component != old.Component || next.Sequence < old.Sequence || c < 0 {
+	if next.Component != old.Component || next.Channel != old.Channel || next.Sequence < old.Sequence || c < 0 {
 		return errors.New("release rollback rejected")
 	}
 	if c == 0 && next.Artifact.SHA256 != old.Artifact.SHA256 {
@@ -238,15 +259,58 @@ func Read(ctx context.Context, raw string, limit int64) ([]byte, error) {
 	return data, nil
 }
 func Latest(ctx context.Context, trust Trust, component string) (Verified, error) {
-	repo := "alrimii/evencord"
-	if component != "core" {
-		repo = "alrimii/evencord-installer"
+	repo, prefix := "alrimii/evencord", "core-v"
+	if component == "installer-cli" || component == "installer-gui" {
+		repo, prefix = "alrimii/evencord-installer", "installer-v"
+	} else if component != "core" {
+		return Verified{}, errors.New("unsupported component")
 	}
-	data, e := Read(ctx, "https://github.com/"+repo+"/releases/latest/download/"+component+".release.json", MaxEnvelope)
+	channel := "stable"
+	if len(trust.Channels) > 0 {
+		channel = trust.Channels[0]
+	}
+	data, e := Read(ctx, "https://api.github.com/repos/"+repo+"/releases?per_page=100", 2<<20)
 	if e != nil {
 		return Verified{}, e
 	}
-	return Verify(data, trust, component, time.Now(), true)
+	var entries []struct {
+		Tag        string `json:"tag_name"`
+		Draft      bool   `json:"draft"`
+		Prerelease bool   `json:"prerelease"`
+	}
+	if e = json.Unmarshal(data, &entries); e != nil {
+		return Verified{}, e
+	}
+	version := ""
+	for _, entry := range entries {
+		if entry.Draft || entry.Prerelease != (channel == "beta") || !strings.HasPrefix(entry.Tag, prefix) {
+			continue
+		}
+		candidate := strings.TrimPrefix(entry.Tag, prefix)
+		if _, e = Compare(candidate, candidate); e != nil || (channel == "beta") != strings.Contains(candidate, "-beta.") {
+			continue
+		}
+		if version == "" {
+			version = candidate
+		} else if order, _ := Compare(candidate, version); order > 0 {
+			version = candidate
+		}
+	}
+	if version == "" {
+		return Verified{}, errors.New("no approved " + channel + " release is available")
+	}
+	data, e = Read(ctx, "https://github.com/"+repo+"/releases/download/"+prefix+version+"/"+component+".release.json", MaxEnvelope)
+	if e != nil {
+		return Verified{}, e
+	}
+	verified, e := Verify(data, trust, component, time.Now(), true)
+	if e != nil {
+		return Verified{}, e
+	}
+	if verified.Manifest.Version != version || verified.Manifest.Channel != channel {
+		return Verified{}, errors.New("release tag and signed identity differ")
+	}
+	return verified, nil
 }
 func ArtifactURL(m Manifest) string {
 	tag := m.Component

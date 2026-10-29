@@ -1,40 +1,56 @@
+<p align="center"><img src="branding/assets/banner.svg" alt="EvenCord" width="960"></p>
+
 # EvenCord Installer
 
-Phase 3 signed-release and recovery infrastructure is implemented. Live distribution remains disabled. See [PHASE3.md](PHASE3.md) for validated behavior, protocol details and remaining activation requirements.
+The Windows installer for [EvenCord](https://github.com/alrimii/evencord), an independent Discord client modification based on Equicord and Vencord. Derived from Equilotl, with explicit ownership, authenticated payloads and recovery support.
 
-![EvenCord](branding/assets/banner.svg)
+**Public beta preparation:** `0.1.0-beta.1`. Download links are added only after signed artifacts pass release verification. The initial target is Windows 10/11 x64 and Discord Stable 1.0.9266 with the exact reviewed archive. Other channels, architectures and unknown archive hashes are rejected.
 
-The development foundation for an independent Windows x64 installer for [EvenCord](https://github.com/alrimii/evencord), based on [Equilotl](https://github.com/Equicord/Equilotl) and [Vencord Installer](https://github.com/Vencord/Installer).
+## Install
 
-**No public installer downloads are available.** The GUI is a non-operational development preview. CLI metadata is available, but installation, removal, repair, OpenAsar changes, downloads and self-update are disabled in the backend. Do not enable these capabilities before Phase 3.
+1. Use official Discord Stable. Remove any existing modification using its supported uninstaller first; this installer refuses Equicord, Vencord, OpenAsar and unknown loaders.
+2. Fully quit Discord, including its tray process.
+3. Download the approved `EvenCordInstaller-x64.exe` once the beta is published.
+4. Select **Detect Discord Stable**, then **Install / Update**. Launch Discord after the operation completes.
 
-## Development
+The optional CLI is `EvenCordInstallerCli-x64.exe`. Use `--help` for operation flags. Neither variant downloads official Equicord binaries as a fallback.
 
-The current source requires Go 1.26.2. The GUI additionally requires the inherited Windows CGO toolchain. Windows resources use the existing go-winres tool. Keep dependency/tool caches in this checkout when working alongside other development environments.
+## Repair, recovery and removal
 
-    go build -tags cli -o build/EvenCordInstallerCli-x64.exe .
-    go run ./cmd/brand-resources
-    go-winres make --in build/winres.json --arch amd64
-    go build -tags "static gui" -ldflags "-H=windowsgui" -o build/EvenCordInstaller-x64.exe .
+- **Repair** retrieves signed release metadata and re-verifies the payload before applying it.
+- **Recover** checks the transaction journal after an interrupted operation.
+- **Uninstall** removes only recognized EvenCord loader files and restores the verified original Discord archive.
+- EvenCord settings in `%APPDATA%\EvenCord` are preserved by default.
 
-For CLI resource metadata, pass -cli to the resource generator before embedding resources and building the CLI. These commands compile source; they do not install the mod. Do not execute installation or repair flows during Phase 2.
+Do not delete `_app.asar`, ownership records or recovery data manually. File locks and permission errors are failures, not successful operations. Private EvenCord previews use a separate trust identity and are not silently converted by the public beta installer.
 
-The Go module remains equilotl for upstream compatibility. Component versioning is independent of the shared branding contract. GitHub Actions and inherited publishing jobs remain disabled.
+## Verification and updates
 
-## Identity and safety
+Ed25519 signatures bind the product, repository, channel, version, commits, compatibility, artifact size and SHA-256. The pinned public verifier is embedded in both components. Downloads use bounded HTTPS and staging; the original loader and last known-good state are preserved.
 
-See [branding/README.md](branding/README.md), [FOUNDATION.md](FOUNDATION.md), and [PHASE2.md](PHASE2.md). The intended payload is evencord.asar in the EvenCord data directory; it is not downloaded or written by this phase.
+**Windows Authenticode signing is not present.** SmartScreen and unknown-publisher warnings are possible. Ed25519 is independent of Windows publisher trust. Do not disable security globally to run a download.
 
-Existing _app.asar files indicate a modified Discord installation, not EvenCord ownership. Loader recognition, safe switching, recovery, verified downloads and signing require Phase 3 work.
+Automatic updates, self-update and Discord repatching remain disabled. Use a verified new installer for manual upgrades. New Discord bootstrap archives require explicit compatibility review. See [release security](docs/RELEASE-SECURITY.md) and [approved compatibility](branding/discord-compatibility.json).
 
-## Support and attribution
+## Build from source
 
-Support information: https://github.com/alrimii/evencord#support. No separate support server, domain or cloud service is operated by this project. Do not seek support for this fork from upstream maintainers.
+Use the Go version in `go.mod`, Node.js 22 for verification tooling, `go-winres`, and a Windows x64 C/C++ compiler compatible with giu/GLFW for the GUI. The project retains the upstream `equilotl` Go module for compatibility.
 
-All upstream history, source headers and [GPL license](LICENSE) are retained. Copyright remains with Vendicated, Vencord contributors, Equicord contributors and the respective original authors; new branding contributions are credited to EvenCord contributors. The original artwork is GPL-3.0-or-later.
+```powershell
+go run ./cmd/brand-resources -cli
+go-winres make --in build/winres.json --arch amd64
+go build -tags cli -trimpath -o build/EvenCordInstallerCli-x64.exe .
+go run ./cmd/brand-resources
+go-winres make --in build/winres.json --arch amd64
+go build -tags 'static gui' -trimpath -ldflags '-H=windowsgui' -o build/EvenCordInstaller-x64.exe .
+```
 
-EvenCord is independent and not affiliated with Discord Inc., Equicord or Vencord. The name remains subject to trademark clearance before public distribution.
+Building does not install the client. Core release payloads must be built and signed separately. `cmd/beta-check` verifies downloads or a disposable fixture without discovering or modifying installed Discord. Read its flags before use.
 
-## Ecosystem and identity refresh
+## Feedback and attribution
 
-The shared palette and assets now match the EvenCord plugin ecosystem. See [ECOSYSTEM.md](ECOSYSTEM.md) for the installer fixes and validation limits. Distribution and Actions remain disabled.
+[Report installer issues](https://github.com/alrimii/evencord-installer/issues) with the version, target Discord version and error. Remove personal paths, account data and secrets from logs. Report plugin problems in the [core repository](https://github.com/alrimii/evencord/issues).
+
+Based on [Equilotl](https://github.com/Equicord/Equilotl), [Equicord](https://github.com/Equicord/Equicord) and [Vencord](https://github.com/Vendicated/Vencord). Original history, authorship and GPL notices remain intact; see [LICENSE](LICENSE). Release tags provide corresponding source. This is not an official Discord, Equicord or Vencord installer.
+
+[Phase 2](PHASE2.md) and [Phase 3](PHASE3.md) are historical engineering records, not current release instructions. EvenCord remains an experimental beta, not production-stable software.

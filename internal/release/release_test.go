@@ -163,3 +163,24 @@ func TestSharedNodeSignatureVector(t *testing.T) {
 		t.Fatal("cross-language manifest differs")
 	}
 }
+func TestBetaChannelAndVersions(t *testing.T) {
+	trust, m, p := fixture(t)
+	trust.Channels = []string{"beta"}
+	m.Channel = "beta"
+	m.Version = "0.1.0-beta.1"
+	if _, e := Verify(signed(m, p), trust, "core", time.Now(), true); e != nil {
+		t.Fatal(e)
+	}
+	trust.Channels = []string{"stable"}
+	if _, e := Verify(signed(m, p), trust, "core", time.Now(), true); e == nil {
+		t.Fatal("cross-channel release accepted")
+	}
+	for _, pair := range [][2]string{{"0.1.0-beta.10", "0.1.0-beta.2"}, {"0.1.0", "0.1.0-beta.10"}} {
+		if c, e := Compare(pair[0], pair[1]); e != nil || c != 1 {
+			t.Fatal(pair, c, e)
+		}
+	}
+	if _, e := Compare("0.1.0-beta.01", "0.1.0-beta.1"); e == nil {
+		t.Fatal("invalid beta accepted")
+	}
+}

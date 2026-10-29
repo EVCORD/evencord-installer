@@ -3,4 +3,4 @@ package buildinfo
 var VersionUnknown = "Unknown"
 
 var InstallerGitHash = "Unknown"
-var InstallerTag = "0.1.0-dev.0"
+var InstallerTag = "0.1.0-beta.1"

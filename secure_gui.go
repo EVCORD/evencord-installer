@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"equilotl/branding"
+	"equilotl/buildinfo"
 	"equilotl/internal/release"
 	"errors"
 	g "github.com/AllenDang/giu"
@@ -77,7 +78,7 @@ func secureGUI() {
 		blocked := working || target == nil || requireLive() != nil
 		g.SingleWindow().Layout(
 			g.Style().SetFontSize(32).To(g.Label(branding.Project.InstallerName)),
-			g.Label("Windows x64 / Discord Stable / Verified EvenCord releases"),
+			g.Label("Public beta "+buildinfo.InstallerTag+" / Windows x64 / Discord Stable"),
 			g.Dummy(0, 12), g.Label(s), g.Label(d).Wrapped(true),
 			g.Dummy(0, 12),
 			g.Button("Detect Discord Stable").Disabled(working).OnClick(func() {
@@ -144,8 +145,9 @@ func secureGUI() {
 					}
 				}()
 			}),
-			g.Dummy(0, 18), g.Label("Production signing and release activation are not configured. Live operations remain disabled.").Wrapped(true),
+			g.Dummy(0, 18), g.Label("Close Discord before installing. Only reviewed Stable archives are supported. Automatic updates are off; use this installer for manual upgrades.").Wrapped(true),
 			g.Label("Based on Equilotl, Equicord and Vencord. "+branding.Project.Links.Support).Wrapped(true),
+			g.Button("Help and report a problem").OnClick(func() { g.OpenURL(branding.Project.Links.Support) }),
 		)
 	})
 }
