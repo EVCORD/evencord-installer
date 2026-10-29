@@ -43,12 +43,12 @@ func generate(cli bool) error {
 		return err
 	}
 	version := map[string]any{
-		"fixed": map[string]string{"file_version": "0.1.0.0", "product_version": "0.1.0.0", "flags": "Prerelease"},
+		"fixed": map[string]string{"file_version": "0.1.0.1", "product_version": "0.1.0.1", "flags": "Prerelease"},
 		"info": map[string]map[string]string{"0409": {
 			"CompanyName": "EvenCord contributors", "ProductName": branding.Project.InstallerName,
 			"FileDescription": name, "ProductVersion": buildinfo.InstallerTag,
-			"OriginalFilename": filename,
-			"LegalCopyright":   "© 2026 Vencord and Equicord contributors - GPL3.0. Additional branding copyright 2026 EvenCord contributors.",
+			"OriginalFilename": filename, "FileVersion": "0.1.0.1", "InternalName": "evencord-installer",
+			"LegalCopyright": "© 2026 Vencord and Equicord contributors - GPL3.0. Additional branding copyright 2026 EvenCord contributors.",
 		}},
 	}
 	resources["RT_VERSION"], err = json.Marshal(map[string]map[string]any{"#1": {"0000": version}})

@@ -1,9 +1,7 @@
 {
   "RT_GROUP_ICON": {
     "APP": {
-      "0000": [
-        "icon.png"
-      ]
+      "0000": "icon.ico"
     }
   },
   "RT_MANIFEST": {
@@ -21,18 +19,19 @@
       "0000": {
         "info": {
           "0409": {
-            "Comments": "Comments",
             "CompanyName": "EvenCord contributors",
             "FileDescription": "EvenCord Installer",
             "LegalCopyright": "\u00a9 2026 Vencord and Equicord contributors - GPL3.0; additional branding copyright 2026 EvenCord contributors.",
             "ProductName": "EvenCord Installer",
-            "ProductVersion": "0.1.0-dev.0",
-            "OriginalFilename": "EvenCordInstaller-x64.exe"
+            "ProductVersion": "0.1.0-beta.1",
+            "OriginalFilename": "EvenCordInstaller-x64.exe",
+            "FileVersion": "0.1.0.1",
+            "InternalName": "evencord-installer"
           }
         },
         "fixed": {
-          "file_version": "0.1.0.0",
-          "product_version": "0.1.0.0",
+          "file_version": "0.1.0.1",
+          "product_version": "0.1.0.1",
           "flags": "Prerelease"
         }
       }
