@@ -130,6 +130,17 @@ func TestSelfUpdateFailurePreservesExecutable(t *testing.T) {
 	if b, _ := os.ReadFile(old); string(b) != "working executable" {
 		t.Fatal("working executable changed")
 	}
+	for i := 0; i < 2; i++ {
+		envelope := signed(m, key)
+		candidate, err := StageSelfUpdate(filepath.Join(dir, "updates"), envelope, trust, "installer-cli", "1.0.0", strings.NewReader("abc"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		proof, err := os.ReadFile(candidate + ".release.json")
+		if err != nil || !bytes.Equal(proof, envelope) {
+			t.Fatal("signed proof was not completely staged")
+		}
+	}
 }
 
 func TestSharedNodeSignatureVector(t *testing.T) {

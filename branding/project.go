@@ -49,6 +49,13 @@ type Contract struct {
 		InstallerGuiAsset string
 		InstallerCliAsset string
 	}
+	Colors struct {
+		Dark    string
+		Surface string
+		Primary string
+		Accent  string
+		Text    string
+	}
 	Capabilities struct {
 		Distribution bool
 		Updates      bool

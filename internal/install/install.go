@@ -265,6 +265,9 @@ func (e Engine) Activate(root string, v release.Verified, staged string) error {
 	if err != nil {
 		return err
 	}
+	if int64(len(data)) != v.Manifest.Artifact.Size || digest(data) != v.Manifest.Artifact.SHA256 {
+		return errors.New("staged payload changed before activation")
+	}
 	target := filepath.Join(root, "releases", v.Manifest.Artifact.SHA256+"-"+v.Manifest.Artifact.Name)
 	if exists(target) {
 		if err = release.CheckFile(target, v.Manifest.Artifact); err != nil {
@@ -317,6 +320,15 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 		h, err := hashFile(backup)
 		if err != nil || h != o.Original {
 			return errors.New("original archive missing or changed")
+		}
+		compatible := false
+		for _, approved := range v.Manifest.Archives {
+			if h == approved {
+				compatible = true
+			}
+		}
+		if !compatible {
+			return errors.New("release does not support the installed Discord archive")
 		}
 		if filepath.Clean(o.DataRoot) != filepath.Clean(root) {
 			return errors.New("installed data root differs")

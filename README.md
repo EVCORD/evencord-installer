@@ -34,3 +34,7 @@ Support information: https://github.com/alrimii/evencord#support. No separate su
 All upstream history, source headers and [GPL license](LICENSE) are retained. Copyright remains with Vendicated, Vencord contributors, Equicord contributors and the respective original authors; new branding contributions are credited to EvenCord contributors. The original artwork is GPL-3.0-or-later.
 
 EvenCord is independent and not affiliated with Discord Inc., Equicord or Vencord. The name remains subject to trademark clearance before public distribution.
+
+## Ecosystem and identity refresh
+
+The shared palette and assets now match the EvenCord plugin ecosystem. See [ECOSYSTEM.md](ECOSYSTEM.md) for the installer fixes and validation limits. Distribution and Actions remain disabled.

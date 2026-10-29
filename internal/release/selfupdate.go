@@ -26,7 +26,22 @@ func StageSelfUpdate(directory string, envelope []byte, trust Trust, component, 
 		return "", err
 	}
 	proof := filepath.Join(directory, filepath.Base(candidate)+".release.json")
-	if err = os.WriteFile(proof, envelope, 0600); err != nil {
+	file, err := os.CreateTemp(directory, ".evencord-proof-")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+	if _, err = file.Write(envelope); err != nil {
+		return "", err
+	}
+	if err = file.Sync(); err != nil {
+		return "", err
+	}
+	if err = file.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Rename(file.Name(), proof); err != nil {
 		return "", err
 	}
 	return candidate, nil

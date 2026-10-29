@@ -13,6 +13,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -51,7 +52,21 @@ func InitGithubDownloader() {
 		InstalledHash = current.Manifest.Source
 	}
 }
+func clearStagedPayload() {
+	if stagedPayload == "" {
+		return
+	}
+	dir := filepath.Dir(stagedPayload)
+	if filepath.Dir(dir) == filepath.Clean(BaseDir) && strings.HasPrefix(filepath.Base(dir), ".evencord-staging-") {
+		if err := os.RemoveAll(dir); err != nil {
+			Log.Warn("Could not remove installer staging directory:", err)
+		}
+	}
+	stagedPayload = ""
+}
+
 func installLatestBuilds() error {
+	clearStagedPayload()
 	if err := requireLive(); err != nil {
 		return err
 	}

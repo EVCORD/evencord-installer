@@ -7,16 +7,19 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"equilotl/branding"
 	"equilotl/internal/release"
 	"errors"
 	g "github.com/AllenDang/giu"
+	"github.com/AllenDang/imgui-go"
 	"image"
 	"sync"
 )
 
 func secureGUI() {
 	win = g.NewMasterWindow(branding.Project.InstallerName, 940, 570, 0)
+	applyBrandTheme()
 	if icon, _, err := image.Decode(bytes.NewReader(iconBytes)); err == nil {
 		win.SetIcon([]image.Image{icon})
 	}
@@ -74,10 +77,13 @@ func secureGUI() {
 		blocked := working || target == nil || requireLive() != nil
 		g.SingleWindow().Layout(
 			g.Style().SetFontSize(32).To(g.Label(branding.Project.InstallerName)),
-			g.Label("Windows x64 ? Discord Stable ? Verified EvenCord releases"),
+			g.Label("Windows x64 / Discord Stable / Verified EvenCord releases"),
 			g.Dummy(0, 12), g.Label(s), g.Label(d).Wrapped(true),
 			g.Dummy(0, 12),
 			g.Button("Detect Discord Stable").Disabled(working).OnClick(func() {
+				mu.Lock()
+				chosen = nil
+				mu.Unlock()
 				found := FindDiscords()
 				if len(found) != 1 {
 					set("Unsupported installation", "No single supported Discord Stable installation was found.")
@@ -109,6 +115,10 @@ func secureGUI() {
 						set("Release available", v.Manifest.Version)
 						return
 					}
+					if err := release.Advance(v.Manifest, old.Manifest); err != nil {
+						set("Release rejected", err.Error())
+						return
+					}
 					order, err := release.Compare(v.Manifest.Version, old.Manifest.Version)
 					if err != nil {
 						set("Release check failed", err.Error())
@@ -138,4 +148,27 @@ func secureGUI() {
 			g.Label("Based on Equilotl, Equicord and Vencord. "+branding.Project.Links.Support).Wrapped(true),
 		)
 	})
+}
+
+func applyBrandTheme() {
+	c := branding.Project.Colors
+	rgba := func(value string) imgui.Vec4 {
+		bytes, err := hex.DecodeString(value[1:])
+		if err != nil || len(bytes) != 3 {
+			panic("invalid branding palette")
+		}
+		return imgui.Vec4{X: float32(bytes[0]) / 255, Y: float32(bytes[1]) / 255, Z: float32(bytes[2]) / 255, W: 1}
+	}
+	style := imgui.CurrentStyle()
+	for id, value := range map[imgui.StyleColorID]string{
+		imgui.StyleColorWindowBg: c.Dark, imgui.StyleColorChildBg: c.Dark,
+		imgui.StyleColorPopupBg: c.Surface, imgui.StyleColorFrameBg: c.Surface,
+		imgui.StyleColorText: c.Text, imgui.StyleColorButton: c.Primary,
+		imgui.StyleColorButtonHovered: c.Surface, imgui.StyleColorButtonActive: c.Primary,
+		imgui.StyleColorHeader: c.Primary, imgui.StyleColorHeaderHovered: c.Surface,
+		imgui.StyleColorCheckMark: c.Text, imgui.StyleColorBorder: c.Surface,
+		imgui.StyleColorSeparator: c.Surface, imgui.StyleColorTitleBgActive: c.Surface,
+	} {
+		style.SetColor(id, rgba(value))
+	}
 }

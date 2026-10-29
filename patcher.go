@@ -9,6 +9,7 @@ package main
 import (
 	"equilotl/branding"
 	"equilotl/internal/install"
+	"equilotl/internal/release"
 	"errors"
 	"github.com/ProtonMail/go-appdir"
 	"os"
@@ -63,7 +64,7 @@ func (di *DiscordInstall) patch() error {
 	if err != nil {
 		return err
 	}
-	if stagedPayload == "" {
+	if stagedPayload == "" || release.CheckFile(stagedPayload, approvedRelease.Manifest.Artifact) != nil {
 		if err = InstallLatestBuilds(); err != nil {
 			return err
 		}
@@ -71,6 +72,7 @@ func (di *DiscordInstall) patch() error {
 	if err = secureEngine().Install(target, BaseDir, approvedRelease, stagedPayload); err != nil {
 		return err
 	}
+	clearStagedPayload()
 	di.isPatched = true
 	InstalledHash = approvedRelease.Manifest.Source
 	return nil

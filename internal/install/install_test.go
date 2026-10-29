@@ -255,3 +255,24 @@ func TestDamagedPayloadRepair(t *testing.T) {
 		t.Fatal("damaged payload evidence not preserved")
 	}
 }
+
+func TestExistingInstallRejectsIncompatibleRelease(t *testing.T) {
+	f := newFixture(t)
+	f.install(t)
+	before, _ := os.ReadFile(filepath.Join(f.root, "current.json"))
+	m := f.verified.Manifest
+	m.Archives = []string{strings.Repeat("f", 64)}
+	body, _ := json.Marshal(m)
+	envelope, _ := json.Marshal(release.Envelope{KeyID: "test", Signed: base64.StdEncoding.EncodeToString(body), Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(f.private, append([]byte(release.Domain), body...)))})
+	candidate, err := release.Verify(envelope, f.engine.Trust, "core", time.Now(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.engine.Install(f.target, f.root, candidate, f.stage); err == nil || !strings.Contains(err.Error(), "does not support") {
+		t.Fatalf("expected compatibility refusal: %v", err)
+	}
+	after, _ := os.ReadFile(filepath.Join(f.root, "current.json"))
+	if !bytes.Equal(before, after) {
+		t.Fatal("active release changed after refusal")
+	}
+}
