@@ -10,8 +10,8 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 | Version | Download |
 | --- | --- |
-| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.2/EvenCordInstaller-x64.exe) |
-| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.2/EvenCordInstallerCli-x64.exe) |
+| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.3/EvenCordInstaller-x64.exe) |
+| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.3/EvenCordInstallerCli-x64.exe) |
 
 ## Usage
 
@@ -21,7 +21,7 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 Uninstall restores Discord's original loader and keeps your settings. If an operation is interrupted, refresh the installation status and use **Recover** when offered. Other client modifications must be removed with their own installer first.
 
-The beta currently supports Windows 10/11 x64 and the reviewed Discord Stable **1.0.9266** archive. Beta.1 and beta.2 require a one-time upgrade with the new installer. From beta.3, EvenCord checks for signed updates automatically; opt into background downloads in EvenCord > Updater. Restart only after a verified update is ready. The executable is not Windows Authenticode signed and may show a SmartScreen warning.
+The beta currently supports Windows 10/11 x64 and the reviewed Discord Stable **1.0.9266** archive. Beta.1 and beta.2 require a one-time upgrade with the new installer. From beta.3, EvenCord checks for signed updates automatically; control background downloads in EvenCord > Updater. Restart only after a verified update is ready. The executable is not Windows Authenticode signed and may show a SmartScreen warning.
 
 Downloads are verified using pinned Ed25519 signatures, artifact sizes and SHA-256. [Verification and recovery details](docs/RELEASE-SECURITY.md)
 
