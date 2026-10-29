@@ -3,5 +3,6 @@
     "repositoryId": 1438489516,
     "commit": "5294a0caf673165aa8ec4fd5efeff9580ace7795",
     "path": "branding/project.json",
-    "sha256": "cf782de2668f942e39630857b2f2c372457138690a7e073ab1807b0530291ddb"
+    "sha256": "54f7c678160c4f7c7fc798004e6dbb94516d18b958ac90da45c18d5d5a2a56c5",
+    "hashFormat": "SHA-256 of the committed Git blob (LF line endings)"
 }
