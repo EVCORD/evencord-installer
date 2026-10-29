@@ -1,5 +1,7 @@
 # EvenCord Installer
 
+Phase 3 signed-release and recovery infrastructure is implemented. Live distribution remains disabled. See [PHASE3.md](PHASE3.md) for validated behavior, protocol details and remaining activation requirements.
+
 ![EvenCord](branding/assets/banner.svg)
 
 The development foundation for an independent Windows x64 installer for [EvenCord](https://github.com/alrimii/evencord), based on [Equilotl](https://github.com/Equicord/Equilotl) and [Vencord Installer](https://github.com/Vencord/Installer).

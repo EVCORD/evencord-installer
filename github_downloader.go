@@ -7,209 +7,77 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"equilotl/branding"
+	"equilotl/internal/release"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
 	"os"
-	path "path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
+	"path/filepath"
+	"time"
 )
 
-type GithubRelease struct {
-	Name    string `json:"name"`
-	TagName string `json:"tag_name"`
-	Assets  []struct {
-		Name        string `json:"name"`
-		DownloadURL string `json:"browser_download_url"`
-	} `json:"assets"`
-}
-
-var ReleaseData GithubRelease
 var GithubError error
 var GithubDoneChan chan bool
+var InstalledHash = "Unavailable"
+var LatestHash = "Unavailable"
+var IsDevInstall = false
+var approvedRelease release.Verified
+var stagedPayload string
 
-var InstalledHash = "None"
-var LatestHash = "Unknown"
-var IsDevInstall bool
-
-func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
-	if !branding.Project.Capabilities.Distribution {
-		return nil, ErrDistributionDisabled
-	}
-	Log.Debug("Fetching", url)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		Log.Error("Failed to create Request", err)
-		return nil, err
-	}
-
-	req.Header.Set("User-Agent", UserAgent)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		Log.Error("Failed to send Request", err)
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode >= 300 {
-		isRateLimitedOrBlocked := res.StatusCode == 401 || res.StatusCode == 403 || res.StatusCode == 429
-		triedFallback := url == fallbackUrl
-
-		if fallbackUrl != "" && isRateLimitedOrBlocked && !triedFallback {
-			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback url %s", url, res.StatusCode, fallbackUrl))
-			return GetGithubRelease(fallbackUrl, fallbackUrl)
-		}
-
-		err = errors.New(res.Status)
-		Log.Error(url, "returned Non-OK status", GithubError)
-		return nil, err
-	}
-
-	var data GithubRelease
-
-	if err = json.NewDecoder(res.Body).Decode(&data); err != nil {
-		Log.Error("Failed to decode GitHub JSON Response", err)
-		return nil, err
-	}
-
-	return &data, nil
-}
-
-func InitGithubDownloader() {
-	GithubDoneChan = make(chan bool, 1)
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		GithubError = ErrDistributionDisabled
-		GithubDoneChan <- false
-		return
-	}
-
-	IsDevInstall = os.Getenv("EVENCORD_DEV_INSTALL") == "1"
-	Log.Debug("Is Dev Install: ", IsDevInstall)
-	if IsDevInstall {
-		GithubDoneChan <- true
-		return
-	}
-
-	go func() {
-		// Make sure UI updates once the request either finished or failed
-		defer func() {
-			GithubDoneChan <- GithubError == nil
-		}()
-
-		data, err := GetGithubRelease(ReleaseUrl, ReleaseUrlFallback)
-		if err != nil {
-			GithubError = err
-			return
-		}
-
-		ReleaseData = *data
-
-		i := strings.LastIndex(data.Name, " ") + 1
-		LatestHash = data.Name[i:]
-		Log.Debug("Finished fetching GitHub Data")
-		Log.Debug("Latest hash is", LatestHash, "Local Install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
-	}()
-
-	// either .asar file or directory with main.js file (in DEV)
-	EquicordFile := EquicordDirectory
-
-	stat, err := os.Stat(EquicordFile)
-	if err != nil {
-		return
-	}
-
-	// dev
-	if stat.IsDir() {
-		EquicordFile = path.Join(EquicordFile, "main.js")
-	}
-
-	// Check hash of installed version if exists
-	b, err := os.ReadFile(EquicordFile)
-	if err != nil {
-		return
-	}
-
-	Log.Debug("Found an EvenCord payload candidate. Checking its build identity...")
-
-	re := regexp.MustCompile(`// EvenCord (\w+)`)
-	match := re.FindSubmatch(b)
-	if match != nil {
-		InstalledHash = string(match[1])
-		Log.Debug("Existing hash is", InstalledHash)
-
-	} else {
-		Log.Debug("Didn't find hash")
-
-	}
-}
-
-func installLatestBuilds() (retErr error) {
+func requireLive() error {
 	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
 		return ErrDistributionDisabled
 	}
-	Log.Debug("Installing latest builds...")
-
-	if IsDevInstall {
-		Log.Debug("Skipping due to dev install")
+	if len(branding.ReleaseTrust().Keys) == 0 {
+		return errors.New("no production release signing keys are configured")
+	}
+	return nil
+}
+func InitGithubDownloader() {
+	GithubDoneChan = make(chan bool, 1)
+	if err := requireLive(); err != nil {
+		GithubError = err
+		GithubDoneChan <- false
 		return
 	}
-
-	downloadUrl := ""
-	for _, ass := range ReleaseData.Assets {
-		if ass.Name == branding.Project.Release.CoreAsset {
-			downloadUrl = ass.DownloadURL
-			break
+	go func() {
+		defer func() { GithubDoneChan <- GithubError == nil }()
+		approvedRelease, GithubError = release.Latest(context.Background(), branding.ReleaseTrust(), "core")
+		if GithubError == nil {
+			LatestHash = approvedRelease.Manifest.Source
 		}
+	}()
+	if current, err := secureEngine().Current(BaseDir); err == nil {
+		InstalledHash = current.Manifest.Source
 	}
-
-	if downloadUrl == "" {
-		retErr = errors.New("Didn't find desktop.asar download link")
-		Log.Error(retErr)
-		return
+}
+func installLatestBuilds() error {
+	if err := requireLive(); err != nil {
+		return err
 	}
-
-	Log.Debug("Downloading desktop.asar")
-
-	res, err := http.Get(downloadUrl)
-	if err == nil && res.StatusCode >= 300 {
-		err = errors.New(res.Status)
+	if len(approvedRelease.Envelope) == 0 {
+		return errors.New("no authenticated release is available")
+	}
+	verified, err := release.Verify(approvedRelease.Envelope, branding.ReleaseTrust(), "core", time.Now(), true)
+	if err != nil {
+		return err
+	}
+	// Each attempt has separate staging so a damaged cache cannot prevent repair.
+	dir, err := os.MkdirTemp(BaseDir, ".evencord-staging-")
+	if os.IsNotExist(err) {
+		if err = os.MkdirAll(BaseDir, 0700); err != nil {
+			return err
+		}
+		dir, err = os.MkdirTemp(BaseDir, ".evencord-staging-")
 	}
 	if err != nil {
-		Log.Error("Failed to download desktop.asar:", err)
-		retErr = err
-		return
+		return err
 	}
-	out, err := os.OpenFile(EquicordDirectory, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	stagedPayload, err = release.Download(context.Background(), filepath.Clean(dir), verified)
 	if err != nil {
-		Log.Error("Failed to create", EquicordDirectory+":", err)
-		retErr = err
-		return
+		os.RemoveAll(dir)
+		return err
 	}
-	read, err := io.Copy(out, res.Body)
-	if err != nil {
-		Log.Error("Failed to download to", EquicordDirectory+":", err)
-		retErr = err
-		return
-	}
-	contentLength := res.Header.Get("Content-Length")
-	expected := strconv.FormatInt(read, 10)
-	if expected != contentLength {
-		err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but I only read " + expected)
-		Log.Error(err.Error())
-		retErr = err
-		return
-	}
-
-	_ = FixOwnership(EquicordDirectory)
-
-	InstalledHash = LatestHash
-	return
+	approvedRelease = verified
+	return nil
 }

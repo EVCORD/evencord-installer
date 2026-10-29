@@ -7,174 +7,116 @@
 package main
 
 import (
+	"context"
 	"equilotl/branding"
 	"equilotl/buildinfo"
+	"equilotl/internal/release"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 )
 
+var selfMu sync.Mutex
 var IsSelfOutdated = false
 var SelfUpdateCheckDoneChan = make(chan bool, 1)
+var selfRelease release.Verified
+var pendingInstaller string
 
-func init() {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
-		return
-	}
-	//goland:noinspection GoBoolExpressions
-	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
-		Log.Debug("Disabling self updater as this is not a release build")
-		return
-	}
-
-	go DeleteOldExecutable()
-
-	go func() {
-		Log.Debug("Checking for Installer Updates...")
-
-		res, err := GetGithubRelease(InstallerReleaseUrl, InstallerReleaseUrlFallback)
-		if err != nil {
-			Log.Warn("Failed to check for self updates:", err)
-			SelfUpdateCheckDoneChan <- false
-		} else {
-			IsSelfOutdated = res.TagName != buildinfo.InstallerTag
-			Log.Debug("Is self outdated?", IsSelfOutdated)
-			SelfUpdateCheckDoneChan <- true
-		}
-	}()
-}
-
-func GetInstallerDownloadLink() string {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
-		return ""
-	}
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
-		return ""
-	}
-	filename := branding.Project.Release.InstallerGuiAsset
+func installerComponent() string {
 	if buildinfo.UiType == buildinfo.UiTypeCli {
-		filename = branding.Project.Release.InstallerCliAsset
+		return "installer-cli"
 	}
-	return "https://github.com/" + branding.Project.Repositories.Installer.Slug + "/releases/latest/download/" + filename
+	return "installer-gui"
 }
-
-func CanUpdateSelf() bool {
-	//goland:noinspection GoBoolExpressions
-	return branding.Project.Capabilities.Distribution && branding.Project.Capabilities.SelfUpdate && IsSelfOutdated && runtime.GOOS != "darwin"
+func selfEnabled() bool {
+	return branding.Project.Capabilities.Distribution && branding.Project.Capabilities.SelfUpdate && len(branding.ReleaseTrust().Keys) > 0 && runtime.GOOS == "windows" && runtime.GOARCH == "amd64"
 }
-
-func UpdateSelf() error {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
-		return ErrDistributionDisabled
+func init() {
+	if !selfEnabled() {
+		SelfUpdateCheckDoneChan <- false
+		return
 	}
-	if !CanUpdateSelf() {
-		return errors.New("Cannot update self. Either no update available or macos")
-	}
-
-	url := GetInstallerDownloadLink()
-	if url == "" {
-		return errors.New("Failed to get installer download link")
-	}
-
-	Log.Debug("Updating self from", url)
-
-	ownExePath, err := os.Executable()
-	if err != nil {
-		return err
-	}
-
-	ownExeDir := path.Dir(ownExePath)
-
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	tmp, err := os.CreateTemp(ownExeDir, "EvenCordInstallerUpdate")
-	if err != nil {
-		return fmt.Errorf("Failed to create tempfile: %w", err)
-	}
-	defer func() {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
+	go func() {
+		next, err := release.Latest(context.Background(), branding.ReleaseTrust(), installerComponent())
+		if err == nil {
+			var order int
+			order, err = release.Compare(next.Manifest.Version, buildinfo.InstallerTag)
+			selfMu.Lock()
+			selfRelease = next
+			IsSelfOutdated = err == nil && order > 0
+			selfMu.Unlock()
+		}
+		SelfUpdateCheckDoneChan <- err == nil
 	}()
-	if err = tmp.Chmod(0o755); err != nil {
-		return fmt.Errorf("failed to chmod 755 %s: %w", tmp.Name(), err)
-	}
-
-	if _, err = io.Copy(tmp, res.Body); err != nil {
-		return err
-	}
-
-	if err = tmp.Close(); err != nil {
-		return err
-	}
-
-	if err = os.Remove(ownExePath); err != nil {
-		if err = os.Rename(ownExePath, ownExePath+".old"); err != nil {
-			return fmt.Errorf("Failed to remove/rename own executable: %w", err)
-		}
-	}
-
-	if err = os.Rename(tmp.Name(), ownExePath); err != nil {
-		return fmt.Errorf("Failed to replace self with updated executable. Please manually redownload the installer: %w", err)
-	}
-
-	return nil
 }
-
-func DeleteOldExecutable() {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
-		return
+func CanUpdateSelf() bool {
+	selfMu.Lock()
+	defer selfMu.Unlock()
+	return selfEnabled() && IsSelfOutdated
+}
+func GetInstallerDownloadLink() string {
+	if !CanUpdateSelf() {
+		return ""
 	}
-	ownExePath, err := os.Executable()
+	selfMu.Lock()
+	defer selfMu.Unlock()
+	return release.ArtifactURL(selfRelease.Manifest)
+}
+func UpdateSelf() error {
+	if !CanUpdateSelf() {
+		return errors.New("no authenticated newer installer is available")
+	}
+	selfMu.Lock()
+	envelope := append([]byte(nil), selfRelease.Envelope...)
+	selfMu.Unlock()
+	v, err := release.Verify(envelope, branding.ReleaseTrust(), installerComponent(), time.Now(), true)
 	if err != nil {
-		return
+		return err
 	}
-
-	for attempts := 0; attempts < 10; attempts += 1 {
-		err = os.Remove(ownExePath + ".old")
-
-		if err == nil || errors.Is(err, os.ErrNotExist) {
-			break
-		}
-
-		Log.Warn("Failed to remove old executable. Retrying in 1 second.", err)
-		time.Sleep(1 * time.Second)
+	exe, err := os.Executable()
+	if err != nil {
+		return err
 	}
+	// Side-by-side handoff keeps the running, locked executable intact.
+	directory := filepath.Join(filepath.Dir(exe), ".evencord-installer-updates")
+	pendingInstaller, err = release.Download(context.Background(), directory, v)
+	if err != nil {
+		return err
+	}
+	file, err := os.Open(pendingInstaller)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	pendingInstaller, err = release.StageSelfUpdate(directory, v.Envelope, branding.ReleaseTrust(), installerComponent(), buildinfo.InstallerTag, file)
+	return err
 }
-
+func DeleteOldExecutable() {}
 func RelaunchSelf() error {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.SelfUpdate {
-		return ErrDistributionDisabled
+	if !selfEnabled() || pendingInstaller == "" {
+		return errors.New("no verified installer handoff is staged")
 	}
-	attr := new(os.ProcAttr)
-	attr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
-
-	var argv []string
-	if len(os.Args) > 1 {
-		argv = os.Args[1:]
-	} else {
-		argv = []string{}
-	}
-
-	Log.Debug("Restarting self with exe", os.Args[0], "and args", argv)
-
-	proc, err := os.StartProcess(os.Args[0], argv, attr)
+	proof, err := os.ReadFile(pendingInstaller + ".release.json")
 	if err != nil {
-		return fmt.Errorf("Failed to start new process: %w", err)
+		return err
 	}
-
+	v, err := release.Verify(proof, branding.ReleaseTrust(), installerComponent(), time.Now(), true)
+	if err != nil {
+		return err
+	}
+	if err = release.CheckFile(pendingInstaller, v.Manifest.Artifact); err != nil {
+		return err
+	}
+	proc, err := os.StartProcess(pendingInstaller, []string{pendingInstaller}, &os.ProcAttr{Files: []*os.File{os.Stdin, os.Stdout, os.Stderr}})
+	if err != nil {
+		return err
+	}
 	if err = proc.Release(); err != nil {
-		return fmt.Errorf("Failed to release new process: %w", err)
+		return err
 	}
-
 	os.Exit(0)
 	return nil
 }

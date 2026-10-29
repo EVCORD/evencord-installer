@@ -1,8 +1,15 @@
 {
     "repository": "alrimii/evencord",
     "repositoryId": 1438489516,
-    "commit": "5294a0caf673165aa8ec4fd5efeff9580ace7795",
+    "commit": "06b946e63c9bbb3624bcd8218c57428552f89fa5",
     "path": "branding/project.json",
     "sha256": "54f7c678160c4f7c7fc798004e6dbb94516d18b958ac90da45c18d5d5a2a56c5",
-    "hashFormat": "SHA-256 of the committed Git blob (LF line endings)"
+    "hashFormat": "SHA-256 of committed Git blobs (LF line endings)",
+    "protocolFiles": {
+        "branding/project.json": "54f7c678160c4f7c7fc798004e6dbb94516d18b958ac90da45c18d5d5a2a56c5",
+        "branding/trust.json": "68c58cbc468b0682c71d73de236d6bf17089e4a6314e527fc44c770d7ec5094c",
+        "branding/runtime.cjs": "7275c1e0017763fecbbf2d3a40977c57acd43d057986cb23e888e2d3222c2261",
+        "branding/loader.cjs": "a2af69c43c638780da7654c3e2a977582235b9a09e12fa382669ff7b03fafe09",
+        "branding/host.cjs": "9f7e6e275065e433f39d012333a7020705df97d634d52daae0c58e50bca7203c"
+    }
 }

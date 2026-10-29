@@ -9,11 +9,9 @@
 package main
 
 import (
-	"bytes"
 	_ "embed"
 	"equilotl/branding"
 	"errors"
-	"image"
 	"image/color"
 
 	g "github.com/AllenDang/giu"
@@ -60,59 +58,7 @@ func init() {
 	LogLevel = LevelDebug
 }
 
-func main() {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		win = g.NewMasterWindow(branding.Project.InstallerName, 820, 440, 0)
-		if icon, _, err := image.Decode(bytes.NewReader(iconBytes)); err == nil {
-			win.SetIcon([]image.Image{icon})
-		}
-		win.Run(func() {
-			g.SingleWindow().Layout(
-				g.Style().SetFontSize(32).To(g.Label(branding.Project.InstallerName)),
-				g.Dummy(0, 20),
-				g.Label(branding.Project.Description),
-				g.Dummy(0, 20),
-				g.Label("Development preview. Installation and updates are unavailable."),
-				g.Label("Your Discord installation is not inspected or changed."),
-				g.Dummy(0, 20),
-				g.Label("Based on Equilotl, Equicord and Vencord."),
-				g.Label(branding.Project.Links.Source),
-			)
-		})
-		return
-	}
-	InitGithubDownloader()
-	discords = FindDiscords()
-	customChoiceIdx = len(discords)
-
-	go func() {
-		<-GithubDoneChan
-		g.Update()
-	}()
-
-	go func() {
-		<-SelfUpdateCheckDoneChan
-		g.Update()
-	}()
-
-	var linuxFlags g.MasterWindowFlags = 0
-	if runtime.GOOS == "linux" {
-		os.Setenv("GDK_SCALE", "1")
-		os.Setenv("GDK_DPI_SCALE", "1")
-	}
-
-	win = g.NewMasterWindow(branding.Project.InstallerName, 1200, 800, linuxFlags)
-
-	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
-	if err != nil {
-		Log.Warn("Failed to load application icon", err)
-		Log.Debug(iconBytes, len(iconBytes))
-	} else {
-		win.SetIcon([]image.Image{icon})
-	}
-
-	win.Run(loop)
-}
+func main() { secureGUI() }
 
 type CondWidget struct {
 	predicate  bool

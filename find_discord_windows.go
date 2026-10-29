@@ -7,12 +7,10 @@
 package main
 
 import (
-	"equilotl/branding"
 	"errors"
 	"os"
 	path "path/filepath"
 	"strings"
-	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -24,8 +22,6 @@ var windowsNames = map[string]string{
 	"canary": "DiscordCanary",
 	"dev":    "DiscordDevelopment",
 }
-
-var killLock sync.Mutex
 
 func ParseDiscordNew(p, branch string, isFlatpak bool) *DiscordInstall {
 	return nil
@@ -74,7 +70,7 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 		branch = GetBranch(p)
 	}
 
-	return &DiscordInstall{
+	result := &DiscordInstall{
 		path:             p,
 		branch:           branch,
 		appPath:          appPath,
@@ -82,6 +78,9 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 		isFlatpak:        false,
 		isSystemElectron: false,
 	}
+	state := result.ownership()
+	result.isPatched = state == "Installed" || state == "Repair available"
+	return result
 }
 
 func FindDiscords() []any {
@@ -93,7 +92,7 @@ func FindDiscords() []any {
 		return discords
 	}
 
-	for branch, dirname := range windowsNames {
+	for branch, dirname := range map[string]string{"stable": "Discord"} {
 		p := path.Join(appData, dirname)
 		if discord := ParseDiscord(p, branch); discord != nil {
 			Log.Debug("Found Discord install at ", p)
@@ -104,33 +103,7 @@ func FindDiscords() []any {
 }
 
 func PreparePatch(di *DiscordInstall) {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return
-	}
-	killLock.Lock()
-	defer killLock.Unlock()
-
-	name := windowsNames[di.branch]
-	Log.Debug("Trying to kill", name)
-	pid := findProcessIdByName(name + ".exe")
-	if pid == 0 {
-		Log.Debug("Didn't find process matching name")
-		return
-	}
-
-	proc, err := os.FindProcess(int(pid))
-	if err != nil {
-		Log.Warn("Failed to find process with pid", pid)
-		return
-	}
-
-	err = proc.Kill()
-	if err != nil {
-		Log.Warn("Failed to kill", name+":", err)
-	} else {
-		Log.Debug("Waiting for", name, "to exit")
-		_, _ = proc.Wait()
-	}
+	// EvenCord never terminates Discord. Locked files produce a recoverable operation error.
 }
 
 func FixOwnership(_ string) error {
@@ -157,6 +130,7 @@ func findProcessIdByName(name string) uint32 {
 		return 0
 	}
 
+	defer windows.CloseHandle(snapshot)
 	procEntry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
 	for {
 		err = windows.Process32Next(snapshot, &procEntry)

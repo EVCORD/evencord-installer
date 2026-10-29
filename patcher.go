@@ -7,45 +7,32 @@
 package main
 
 import (
-	"bytes"
 	"equilotl/branding"
+	"equilotl/internal/install"
 	"errors"
-	"os"
-	"os/exec"
-	path "path/filepath"
-	"strings"
-
 	"github.com/ProtonMail/go-appdir"
+	"os"
+	"path/filepath"
+	"runtime"
 )
 
 var BaseDir string
 var BaseDirErr error
 var EquicordDirectory string
-
 var ErrAlreadyReported = errors.New("already reported")
 
 func init() {
 	prefix := branding.Project.Storage.EnvironmentPrefix
-	if dir := os.Getenv(prefix + "_USER_DATA_DIR"); dir != "" {
-		BaseDir = dir
-	} else if dir = os.Getenv("DISCORD_USER_DATA_DIR"); dir != "" {
-		BaseDir = path.Join(dir, "..", branding.Project.Storage.PortableDirectory)
-	} else {
-		BaseDir = appdir.New(branding.Project.Storage.Directory).UserConfig()
-	}
-	EquicordDirectory = os.Getenv(prefix + "_DIRECTORY")
-	if EquicordDirectory == "" {
-		EquicordDirectory = path.Join(BaseDir, branding.Project.Storage.Payload)
-	}
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return
-	}
-	if !ExistsFile(BaseDir) {
-		BaseDirErr = os.MkdirAll(BaseDir, 0755)
-		if BaseDirErr == nil {
-			BaseDirErr = FixOwnership(BaseDir)
+	BaseDir = os.Getenv(prefix + "_USER_DATA_DIR")
+	if BaseDir == "" {
+		if portable := os.Getenv("DISCORD_USER_DATA_DIR"); portable != "" {
+			BaseDir = filepath.Join(portable, "..", branding.Project.Storage.PortableDirectory)
+		} else {
+			BaseDir = appdir.New(branding.Project.Storage.Directory).UserConfig()
 		}
 	}
+	BaseDir, BaseDirErr = filepath.Abs(BaseDir)
+	EquicordDirectory = filepath.Join(BaseDir, branding.Project.Storage.Payload)
 }
 
 type DiscordInstall struct {
@@ -58,268 +45,65 @@ type DiscordInstall struct {
 	isOpenAsar       *bool
 }
 
-//region Patch
-
-func patchAppAsar(dir string, isSystemElectron bool) (err error) {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return ErrDistributionDisabled
-	}
-	appAsar := path.Join(dir, "app.asar")
-	_appAsar := path.Join(dir, "_app.asar")
-
-	var renamesDone [][]string
-	defer func() {
-		if err != nil && len(renamesDone) > 0 {
-			Log.Error("Failed to patch. Undoing partial patch")
-			for _, rename := range renamesDone {
-				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
-					Log.Error("Failed to undo partial patch. This install is probably bricked.", innerErr)
-				} else {
-					Log.Info("Successfully undid all changes")
-				}
-			}
-		}
-	}()
-
-	Log.Debug("Renaming", appAsar, "to", _appAsar)
-	if err := os.Rename(appAsar, _appAsar); err != nil {
-		err = CheckIfErrIsCauseItsBusyRn(err)
-		Log.Error(err.Error())
-		return err
-	}
-	renamesDone = append(renamesDone, []string{appAsar, _appAsar})
-
-	if isSystemElectron {
-		from, to := appAsar+".unpacked", _appAsar+".unpacked"
-		Log.Debug("Renaming", from, "to", to)
-		err := os.Rename(from, to)
-		if err != nil {
-			return err
-		}
-		renamesDone = append(renamesDone, []string{from, to})
-	}
-
-	Log.Debug("Writing custom app.asar to", appAsar)
-	if err := WriteAppAsar(appAsar, EquicordDirectory); err != nil {
-		return err
-	}
-
-	return nil
+func secureEngine() install.Engine {
+	return install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader}
 }
-
+func (di *DiscordInstall) target() (install.Target, error) {
+	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || di.branch != "stable" || di.isSystemElectron || di.isFlatpak {
+		return install.Target{}, errors.New("only Windows x64 Discord Stable is supported")
+	}
+	t := install.Target{Resources: filepath.Dir(di.appPath), Channel: di.branch}
+	return t, install.Validate(t)
+}
 func (di *DiscordInstall) patch() error {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return ErrDistributionDisabled
+	if err := requireLive(); err != nil {
+		return err
 	}
-	Log.Info("Patching " + di.path + "...")
-	if LatestHash != InstalledHash {
-		if err := InstallLatestBuilds(); err != nil {
-			return ErrAlreadyReported
-		}
-	}
-
-	PreparePatch(di)
-
-	if di.isPatched {
-		Log.Info(di.path, "is already patched. Unpatching first...")
-		if err := di.unpatch(); err != nil {
-			if errors.Is(err, os.ErrPermission) {
-				return err
-			}
-			return errors.New("patch: Failed to unpatch already patched install '" + di.path + "':\n" + err.Error())
-		}
-	}
-
-	if di.isSystemElectron {
-		if err := patchAppAsar(di.path, true); err != nil {
-			return err
-		}
-	} else {
-		if err := patchAppAsar(path.Join(di.appPath, ".."), false); err != nil {
-			return err
-		}
-	}
-
-	Log.Info("Successfully patched", di.path)
-	di.isPatched = true
-
-	if di.isFlatpak {
-		pathElements := strings.Split(di.path, "/")
-		var name string
-		for _, e := range pathElements {
-			if strings.HasPrefix(e, "com.discordapp") {
-				name = e
-				break
-			}
-		}
-
-		Log.Debug("This is a flatpak. Trying to grant the Flatpak access to", EquicordDirectory+"...")
-
-		isSystemFlatpak := strings.HasPrefix(di.path, "/var")
-		var args []string
-		if !isSystemFlatpak {
-			args = append(args, "--user")
-		}
-		args = append(args, "override", name, "--filesystem="+EquicordDirectory)
-		fullCmd := "flatpak " + strings.Join(args, " ")
-
-		Log.Debug("Running", fullCmd)
-
-		var err error
-		if !isSystemFlatpak && os.Getuid() == 0 {
-			// We are operating on a user flatpak but are root
-			actualUser := os.Getenv("SUDO_USER")
-			Log.Debug("This is a user install but we are root. Using su to run as", actualUser)
-			cmd := exec.Command("su", "-", actualUser, "-c", "sh", "-c", fullCmd)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			err = cmd.Run()
-		} else {
-			cmd := exec.Command("flatpak", args...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			err = cmd.Run()
-		}
-		if err != nil {
-			return errors.New("Failed to grant Discord Flatpak access to " + EquicordDirectory + ": " + err.Error())
-		}
-	}
-	return nil
-}
-
-//endregion
-
-// region Unpatch
-
-func isEquicordLoaderAppAsar(appAsar string) (bool, error) {
-	stat, err := os.Stat(appAsar)
-	if err != nil {
-		return false, err
-	}
-	if stat.Size() > 128*1024 {
-		return false, nil
-	}
-	b, err := os.ReadFile(appAsar)
-	if err != nil {
-		return false, err
-	}
-	return bytes.Contains(b, []byte(PackageJson)) && bytes.Contains(b, []byte("require(")), nil
-}
-
-func cleanupDesyncedPatchedInstall(dir string, isSystemElectron bool) (bool, error) {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Repair {
-		return false, ErrDistributionDisabled
-	}
-	appAsar := path.Join(dir, "app.asar")
-	_appAsar := path.Join(dir, "_app.asar")
-
-	isLoader, err := isEquicordLoaderAppAsar(appAsar)
-	if err != nil {
-		return false, err
-	}
-	if isLoader {
-		return false, nil
-	}
-
-	Log.Warn("Detected a patched install with a non-Equicord app.asar. Discord was likely updated while patched; removing stale _app.asar")
-
-	if err = os.Remove(_appAsar); err != nil {
-		return false, CheckIfErrIsCauseItsBusyRn(err)
-	}
-	if isSystemElectron {
-		if err = os.RemoveAll(_appAsar + ".unpacked"); err != nil {
-			return false, err
-		}
-	}
-	return true, nil
-}
-
-func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return ErrDistributionDisabled
-	}
-	appAsar := path.Join(dir, "app.asar")
-	appAsarTmp := path.Join(dir, "app.asar.tmp")
-	_appAsar := path.Join(dir, "_app.asar")
-
-	cleanedUp, err := cleanupDesyncedPatchedInstall(dir, isSystemElectron)
+	target, err := di.target()
 	if err != nil {
 		return err
 	}
-	if cleanedUp {
-		return nil
-	}
-
-	var renamesDone [][]string
-	defer func() {
-		if errOut != nil && len(renamesDone) > 0 {
-			Log.Error("Failed to unpatch. Undoing partial unpatch")
-			for _, rename := range renamesDone {
-				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
-					Log.Error("Failed to undo partial unpatch. This install is probably bricked.", innerErr)
-				} else {
-					Log.Info("Successfully undid all changes")
-				}
-			}
-		} else if errOut == nil {
-			if innerErr := os.RemoveAll(appAsarTmp); innerErr != nil {
-				Log.Warn("Failed to delete temporary app.asar (patch folder) backup. This is whatever but you might want to delete it manually.", innerErr)
-			}
+	if stagedPayload == "" {
+		if err = InstallLatestBuilds(); err != nil {
+			return err
 		}
-	}()
-
-	Log.Debug("Deleting", appAsar)
-	if err := os.Rename(appAsar, appAsarTmp); err != nil {
-		err = CheckIfErrIsCauseItsBusyRn(err)
-		Log.Error(err.Error())
-		errOut = err
-		return
 	}
-	renamesDone = append(renamesDone, []string{appAsar, appAsarTmp})
-
-	Log.Debug("Renaming", _appAsar, "to", appAsar)
-	if err := os.Rename(_appAsar, appAsar); err != nil {
-		err = CheckIfErrIsCauseItsBusyRn(err)
-		Log.Error(err.Error())
-		errOut = err
-		return
+	if err = secureEngine().Install(target, BaseDir, approvedRelease, stagedPayload); err != nil {
+		return err
 	}
-	renamesDone = append(renamesDone, []string{_appAsar, appAsar})
-
-	if isSystemElectron {
-		from, to := _appAsar+".unpacked", appAsar+".unpacked"
-		Log.Debug("Renaming", from, "to", to)
-		if err := os.Rename(from, to); err != nil {
-			Log.Error(err.Error())
-			errOut = err
-			return
-		}
-		renamesDone = append(renamesDone, []string{from, to})
-	}
-	return
+	di.isPatched = true
+	InstalledHash = approvedRelease.Manifest.Source
+	return nil
 }
-
 func (di *DiscordInstall) unpatch() error {
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		return ErrDistributionDisabled
+	if err := requireLive(); err != nil {
+		return err
 	}
-	Log.Info("Unpatching " + di.path + "...")
-
-	PreparePatch(di)
-
-	if di.isSystemElectron {
-		if err := unpatchAppAsar(di.path, true); err != nil {
-			return err
-		}
-	} else {
-		if err := unpatchAppAsar(path.Join(di.appPath, ".."), false); err != nil {
-			return err
-		}
+	target, err := di.target()
+	if err != nil {
+		return err
 	}
-
-	Log.Info("Successfully unpatched", di.path)
+	if err = secureEngine().Uninstall(target); err != nil {
+		return err
+	}
 	di.isPatched = false
 	return nil
 }
-
-//endregion
+func (di *DiscordInstall) recover() error {
+	if err := requireLive(); err != nil {
+		return err
+	}
+	target, err := di.target()
+	if err != nil {
+		return err
+	}
+	return secureEngine().Recover(target)
+}
+func (di *DiscordInstall) ownership() string {
+	target, err := di.target()
+	if err != nil {
+		return "Unsupported installation"
+	}
+	state, _ := secureEngine().Inspect(target)
+	return state
+}

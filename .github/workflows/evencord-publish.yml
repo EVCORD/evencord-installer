@@ -1,0 +1,60 @@
+name: Publish approved signed draft
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing reviewed draft release tag
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'alrimii/evencord-installer' && github.ref == 'refs/heads/main' && vars.EVENCORD_RELEASE_ENABLED == 'true'
+    environment: evencord-production
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - name: Verify signed draft without executing its artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ($env:TAG -notmatch '^installer-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {throw 'Invalid tag'}
+          $draft = gh release view $env:TAG --repo alrimii/evencord-installer --json isDraft,assets | ConvertFrom-Json
+          if ($LASTEXITCODE -or !$draft.isDraft) {throw 'An existing unpublished draft is required'}
+          $expected=@('EvenCordInstaller-x64.exe','EvenCordInstallerCli-x64.exe','installer-gui.release.json','installer-cli.release.json')
+          $actual=@($draft.assets | ForEach-Object {$_.name})
+          if ($actual.Count -ne $expected.Count -or (Compare-Object ($actual | Sort-Object) ($expected | Sort-Object))) {throw 'Unexpected or missing draft assets'}
+          $tagCommit = git rev-list -n 1 $env:TAG
+          if ($LASTEXITCODE -or $tagCommit -ne $env:GITHUB_SHA) {throw 'Tag does not match reviewed main commit'}
+          New-Item -ItemType Directory -Force candidate | Out-Null
+          gh release download $env:TAG --repo alrimii/evencord-installer --pattern EvenCordInstaller-x64.exe --dir candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          gh release download $env:TAG --repo alrimii/evencord-installer --pattern EvenCordInstallerCli-x64.exe --dir candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          gh release download $env:TAG --repo alrimii/evencord-installer --pattern installer-gui.release.json --dir candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          gh release download $env:TAG --repo alrimii/evencord-installer --pattern installer-cli.release.json --dir candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          node scripts/release-tools.cjs verify installer-cli candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          node scripts/release-tools.cjs verify installer-gui candidate
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}
+          $envelope = Get-Content candidate/installer-cli.release.json -Raw | ConvertFrom-Json
+          $manifest = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($envelope.signed)) | ConvertFrom-Json
+          if ($env:TAG -ne ('installer-v'+$manifest.version)) {throw 'Tag and signed version differ'}
+          $guiEnvelope = Get-Content candidate/installer-gui.release.json -Raw | ConvertFrom-Json
+          $guiManifest = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($guiEnvelope.signed)) | ConvertFrom-Json
+          if ($guiManifest.version -ne $manifest.version) {throw 'CLI and GUI versions differ'}
+          gh release edit $env:TAG --repo alrimii/evencord-installer --draft=false --latest
+          if ($LASTEXITCODE) {exit $LASTEXITCODE}

@@ -59,6 +59,7 @@ func main() {
 	var updateSelfFlag = flag.Bool("update-self", false, "Update me to the latest version")
 	var installFlag = flag.Bool("install", false, "Install EvenCord")
 	var updateFlag = flag.Bool("repair", false, "Repair EvenCord")
+	var recoverFlag = flag.Bool("recover", false, "Recover an interrupted EvenCord operation")
 	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall EvenCord")
 	var installOpenAsarFlag = flag.Bool("install-openasar", false, "Install OpenAsar")
 	var uninstallOpenAsarFlag = flag.Bool("uninstall-openasar", false, "Uninstall OpenAsar")
@@ -84,6 +85,14 @@ func main() {
 	}
 	InitGithubDownloader()
 	discords = FindDiscords()
+	if *recoverFlag {
+		if err := PromptDiscord("recover", *locationFlag, *branchFlag).recover(); err != nil {
+			die(err.Error())
+			return
+		}
+		exitSuccess()
+		return
+	}
 
 	if *updateSelfFlag {
 		if !<-SelfUpdateCheckDoneChan {
@@ -93,6 +102,7 @@ func main() {
 			Log.Error("Failed to update self:", err)
 			exitFailure()
 		}
+		Log.Info("Verified installer staged at", pendingInstaller, "The current executable was retained. Launch the staged copy to continue.")
 		exitSuccess()
 	}
 
@@ -165,9 +175,9 @@ func main() {
 		errSilent = PromptDiscord("unpatch", *locationFlag, *branchFlag).unpatch()
 	} else if update {
 		Log.Info("Downloading latest EvenCord files...")
-		err := installLatestBuilds()
-		Log.Info("Done!")
-		if err == nil {
+		errSilent = installLatestBuilds()
+		if errSilent == nil {
+			Log.Info("Download verified.")
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
 		}
 	} else if installOpenAsar {
@@ -261,7 +271,7 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 	items := SliceMap(discords, func(d any) string {
 		install := d.(*DiscordInstall)
 		//goland:noinspection GoDeprecation
-		return fmt.Sprintf("%s - %s%s", strings.Title(install.branch), install.path, Ternary(install.isPatched, " [Modified installation; ownership unverified]", ""))
+		return fmt.Sprintf("%s - %s%s", strings.Title(install.branch), install.path, " ["+install.ownership()+"]")
 	})
 	items = append(items, "Custom Location")
 
