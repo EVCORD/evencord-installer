@@ -196,7 +196,8 @@ func Advance(next, old Manifest) error {
 	if e != nil {
 		return e
 	}
-	if next.Component != old.Component || next.Channel != old.Channel || next.Sequence < old.Sequence || c < 0 {
+	transition := old.Channel == "beta" && next.Channel == "stable" && c > 0 && next.Sequence > old.Sequence
+	if next.Component != old.Component || (next.Channel != old.Channel && !transition) || next.Sequence < old.Sequence || c < 0 {
 		return errors.New("release rollback rejected")
 	}
 	if c == 0 && next.Artifact.SHA256 != old.Artifact.SHA256 {

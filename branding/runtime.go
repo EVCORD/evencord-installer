@@ -17,6 +17,9 @@ var Loader []byte
 //go:embed trust.json
 var TrustData []byte
 
+//go:embed legacy-trust.json
+var LegacyTrustData []byte
+
 func ReleaseTrust() release.Trust {
 	var t release.Trust
 	if e := json.Unmarshal(TrustData, &t); e != nil {
@@ -29,4 +32,5 @@ func init() {
 	Runtime = bytes.ReplaceAll(Runtime, []byte("\r\n"), []byte("\n"))
 	Loader = bytes.ReplaceAll(Loader, []byte("\r\n"), []byte("\n"))
 	TrustData = bytes.ReplaceAll(TrustData, []byte("\r\n"), []byte("\n"))
+	LegacyTrustData = bytes.ReplaceAll(LegacyTrustData, []byte("\r\n"), []byte("\n"))
 }

@@ -91,7 +91,7 @@ func run() error {
 			return fmt.Errorf("fixture marker required")
 		}
 		target := install.Target{Resources: filepath.Join(app, "resources"), Channel: *channel}
-		engine := install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
+		engine := install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, LegacyTrustData: branding.LegacyTrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
 		root := install.DataRoot(filepath.Join(out, "data"), *channel)
 		if e = os.MkdirAll(root, 0700); e != nil {
 			return e

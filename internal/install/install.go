@@ -35,10 +35,10 @@ type Journal struct {
 	Owner     Owner  `json:"owner"`
 }
 type Engine struct {
-	Trust                      release.Trust
-	TrustData, Runtime, Loader []byte
-	AfterStep                  func(string) error
-	ChannelArchives            map[string][]string
+	Trust                                       release.Trust
+	TrustData, LegacyTrustData, Runtime, Loader []byte
+	AfterStep                                   func(string) error
+	ChannelArchives                             map[string][]string
 }
 
 const ownerName = "evencord-install.json"
@@ -108,10 +108,14 @@ func readOwner(p string) (Owner, error) {
 }
 func (e Engine) expected(o Owner) map[string][]byte {
 	b, _ := json.Marshal(o)
-	return map[string][]byte{"package.json": []byte("{\"name\":\"discord\",\"main\":\"index.js\"}"), "index.js": e.Loader, "runtime.cjs": e.Runtime, "trust.json": e.TrustData, "evencord-owner.json": b}
+	trust := e.TrustData
+	if len(e.LegacyTrustData) > 0 && o.Files["trust.json"] == digest(e.LegacyTrustData) {
+		trust = e.LegacyTrustData
+	}
+	return map[string][]byte{"package.json": []byte("{\"name\":\"discord\",\"main\":\"index.js\"}"), "index.js": e.Loader, "runtime.cjs": e.Runtime, "trust.json": trust, "evencord-owner.json": b}
 }
 func (e Engine) validLoader(dir string, o Owner) error {
-	if len(o.Files) != 3 || o.Files["index.js"] != digest(e.Loader) || o.Files["runtime.cjs"] != digest(e.Runtime) || o.Files["trust.json"] != digest(e.TrustData) {
+	if len(o.Files) != 3 || o.Files["index.js"] != digest(e.Loader) || o.Files["runtime.cjs"] != digest(e.Runtime) || (o.Files["trust.json"] != digest(e.TrustData) && (len(e.LegacyTrustData) == 0 || o.Files["trust.json"] != digest(e.LegacyTrustData))) {
 		return errors.New("loader identity does not match this installer")
 	}
 	if err := SafePath(dir); err != nil {
@@ -156,7 +160,7 @@ func (e Engine) Inspect(t Target) (string, error) {
 	if err := Validate(t); err != nil {
 		return "Unsupported installation", err
 	}
-	if exists(filepath.Join(t.Resources, journalName)) {
+	if exists(filepath.Join(t.Resources, journalName)) || exists(filepath.Join(t.Resources, trustJournal)) {
 		return "Recovery available", nil
 	}
 	if exists(filepath.Join(t.Resources, ownerName)) {
@@ -321,6 +325,11 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 		return err
 	}
 	defer unlock()
+	if exists(filepath.Join(t.Resources, trustJournal)) {
+		if err = e.upgradeTrust(t); err != nil {
+			return err
+		}
+	}
 	if exists(filepath.Join(t.Resources, journalName)) {
 		return errors.New("unfinished transaction; recover before installing")
 	}
@@ -353,6 +362,9 @@ func (e Engine) Install(t Target, root string, v release.Verified, staged string
 		}
 		if filepath.Clean(o.DataRoot) != filepath.Clean(root) {
 			return errors.New("installed data root differs")
+		}
+		if err = e.upgradeTrust(t); err != nil {
+			return err
 		}
 		return e.Activate(root, v, staged)
 	}
@@ -451,6 +463,9 @@ func (e Engine) Recover(t Target) error {
 		return err
 	}
 	defer unlock()
+	if exists(filepath.Join(t.Resources, trustJournal)) {
+		return e.upgradeTrust(t)
+	}
 	if !exists(filepath.Join(t.Resources, journalName)) {
 		o, err := readOwner(filepath.Join(t.Resources, ownerName))
 		if err != nil {

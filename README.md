@@ -6,12 +6,12 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 ## Download
 
-**Windows x64 · Public beta**
+**Windows x64 · Stable release**
 
 | Version | Download |
 | --- | --- |
-| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.8/EvenCordInstaller-x64.exe) |
-| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v0.1.0-beta.8/EvenCordInstallerCli-x64.exe) |
+| GUI | [Download EvenCord Installer](https://github.com/alrimii/evencord-installer/releases/download/installer-v1.0.0/EvenCordInstaller-x64.exe) |
+| CLI | [Download CLI](https://github.com/alrimii/evencord-installer/releases/download/installer-v1.0.0/EvenCordInstallerCli-x64.exe) |
 
 ## Usage
 
@@ -21,7 +21,7 @@ Install, update, repair or uninstall [EvenCord](https://github.com/alrimii/evenc
 
 Uninstall restores Discord's original loader and keeps your settings. If an operation is interrupted, refresh the installation status and use **Recover** when offered. Other client modifications must be removed with their own installer first.
 
-The beta supports Windows 10/11 x64 with reviewed Stable **1.0.9266**, PTB **1.0.1229** and Canary **1.0.1285/1.0.1286** archives. Each channel has a separate EvenCord profile. Beta.1 and beta.2 require a one-time upgrade with the new installer. From beta.3, EvenCord checks for signed updates automatically; control background downloads in EvenCord > Updater. Restart only after a verified update is ready. The executable is not Windows Authenticode signed and may show a SmartScreen warning.
+Windows 10/11 x64 supports reviewed Stable **1.0.9266**, PTB **1.0.1229** and Canary **1.0.1285/1.0.1286** archives. Each channel has a separate EvenCord profile. The installer retrieves signed EvenCord stable releases, preserving settings and recovery. Existing update-enabled beta clients can migrate through the signed transition update. Very old update-disabled builds require this installer. Windows executables are not Authenticode signed and may show a SmartScreen warning.
 
 Downloads are verified using pinned Ed25519 signatures, artifact sizes and SHA-256. [Verification and recovery details](docs/RELEASE-SECURITY.md)
 

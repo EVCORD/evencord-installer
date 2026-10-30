@@ -47,7 +47,7 @@ type DiscordInstall struct {
 }
 
 func secureEngine() install.Engine {
-	return install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
+	return install.Engine{Trust: branding.ReleaseTrust(), TrustData: branding.TrustData, LegacyTrustData: branding.LegacyTrustData, Runtime: branding.Runtime, Loader: branding.Loader, ChannelArchives: branding.ChannelArchives()}
 }
 func (di *DiscordInstall) target() (install.Target, error) {
 	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || (di.branch != "stable" && di.branch != "ptb" && di.branch != "canary") || di.isSystemElectron || di.isFlatpak {

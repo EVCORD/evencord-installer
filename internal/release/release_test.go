@@ -184,3 +184,20 @@ func TestBetaChannelAndVersions(t *testing.T) {
 		t.Fatal("invalid beta accepted")
 	}
 }
+
+func TestStablePromotion(t *testing.T) {
+	_, beta, _ := fixture(t)
+	beta.Channel, beta.Version, beta.Sequence = "beta", "1.0.0-beta.9", 9
+	stable := beta
+	stable.Channel, stable.Version, stable.Sequence = "stable", "1.0.0", 10
+	if err := Advance(stable, beta); err != nil {
+		t.Fatal(err)
+	}
+	if err := Advance(beta, stable); err == nil {
+		t.Fatal("stable downgraded to beta")
+	}
+	stable.Sequence = 9
+	if err := Advance(stable, beta); err == nil {
+		t.Fatal("sequence reused during promotion")
+	}
+}

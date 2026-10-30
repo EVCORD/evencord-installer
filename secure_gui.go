@@ -203,7 +203,7 @@ func secureGUI() {
 					}, nil},
 				),
 				g.Dummy(0, 22), g.Separator(), g.Dummy(0, 10),
-				g.Label("Windows x64 / Stable, PTB and Canary / Beta "+buildinfo.InstallerTag),
+				g.Label("Windows x64 / Stable, PTB and Canary / "+buildinfo.InstallerTag),
 				g.Label("Operations close the selected Discord channel. Save unsaved clips first. Other channels stay open.").Wrapped(true),
 				g.Label("Based on Equilotl, Equicord and Vencord.").Wrapped(true),
 			),

@@ -43,11 +43,11 @@ func generate(cli bool) error {
 		return err
 	}
 	version := map[string]any{
-		"fixed": map[string]string{"file_version": "0.1.0.8", "product_version": "0.1.0.8", "flags": "Prerelease"},
+		"fixed": map[string]string{"file_version": "1.0.0.0", "product_version": "1.0.0.0"},
 		"info": map[string]map[string]string{"0409": {
 			"CompanyName": "EvenCord contributors", "ProductName": branding.Project.InstallerName,
 			"FileDescription": name, "ProductVersion": buildinfo.InstallerTag,
-			"OriginalFilename": filename, "FileVersion": "0.1.0.8", "InternalName": "evencord-installer",
+			"OriginalFilename": filename, "FileVersion": "1.0.0.0", "InternalName": "evencord-installer",
 			"LegalCopyright": "© 2026 Vencord and Equicord contributors - GPL3.0. Additional branding copyright 2026 EvenCord contributors.",
 		}},
 	}
