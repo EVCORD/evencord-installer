@@ -28,3 +28,5 @@ Close Discord, open EvenCord and choose **Install** or **Repair**. Your settings
 Based on [Equilotl](https://github.com/Equicord/Equilotl) and the Vencord installer. Original credits are retained. [GPL](LICENSE).
 
 Developed by **BOSS**. Discord: **bss** / [Instagram: _w0d](https://www.instagram.com/_w0d/).
+
+Join the [official EvenCord community](https://discord.gg/X9ZPfzEe9b) for plugin discussions, support and suggestions.
