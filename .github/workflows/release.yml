@@ -9,6 +9,7 @@ on:
 
 env:
   FORCE_COLOR: true
+  GH_REPO: alrimii/evencord-installer
 
 permissions:
   contents: write
