@@ -4,7 +4,7 @@ on:
     - cron: '41 */12 * * *'
   workflow_dispatch:
 env:
-  GH_REPO: alrimii/evencord-installer
+  GH_REPO: EVCORD/evencord-installer
 permissions:
   contents: write
   actions: write
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   integrate:
-    if: github.repository == 'alrimii/evencord-installer' && github.ref == 'refs/heads/main'
+    if: github.repository == 'EVCORD/evencord-installer' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

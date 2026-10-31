@@ -52,7 +52,7 @@ func newFixture(t *testing.T) fixture {
 	engine := Engine{Trust: trust, TrustData: trustData, Runtime: []byte("fixture runtime"), Loader: []byte("fixture loader")}
 	payload := []byte("verified synthetic payload")
 	h := sha256.Sum256(payload)
-	m := release.Manifest{Schema: 1, Product: "evencord", Component: "core", Repository: "alrimii/evencord", RepositoryID: 1438489516, Channel: "stable", Version: "1.0.0", Sequence: 1, Source: strings.Repeat("a", 40), Upstream: strings.Repeat("b", 40), Platform: "win32", Arch: "x64", Discord: "stable", Loader: 1, Published: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339), Expires: time.Now().Add(time.Hour).UTC().Format(time.RFC3339), Notes: "Fixture", Archives: []string{digest(original)}, Artifact: release.Artifact{Name: "desktop.asar", Size: int64(len(payload)), SHA256: hex.EncodeToString(h[:])}}
+	m := release.Manifest{Schema: 1, Product: "evencord", Component: "core", Repository: "EVCORD/evencord", RepositoryID: 1438489516, Channel: "stable", Version: "1.0.0", Sequence: 1, Source: strings.Repeat("a", 40), Upstream: strings.Repeat("b", 40), Platform: "win32", Arch: "x64", Discord: "stable", Loader: 1, Published: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339), Expires: time.Now().Add(time.Hour).UTC().Format(time.RFC3339), Notes: "Fixture", Archives: []string{digest(original)}, Artifact: release.Artifact{Name: "desktop.asar", Size: int64(len(payload)), SHA256: hex.EncodeToString(h[:])}}
 	body, _ := json.Marshal(m)
 	env, _ := json.Marshal(release.Envelope{KeyID: "test", Signed: base64.StdEncoding.EncodeToString(body), Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(private, append([]byte(release.Domain), body...)))})
 	v, err := release.Verify(env, trust, "core", time.Now(), true)

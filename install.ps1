@@ -1,4 +1,4 @@
-$link = "https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCordInstallerCli.exe"
+$link = "https://github.com/EVCORD/evencord-installer/releases/latest/download/EvenCordInstallerCli.exe"
 
 $outfile = "$env:TEMP\EvenCordInstallerCli.exe"
 

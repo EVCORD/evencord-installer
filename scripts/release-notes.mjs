@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 const version = process.argv[2];
-const base = `https://github.com/alrimii/evencord-installer/releases/download/installer-v${version}/`;
+const base = `https://github.com/EVCORD/evencord-installer/releases/download/installer-v${version}/`;
 console.log(`# EvenCord ${version}
 
 ## Download

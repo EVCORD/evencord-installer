@@ -158,7 +158,7 @@ func installLatestBuilds() error {
 		if asset.Size <= 0 || asset.Size > 134217728 || len(asset.Digest) != 71 || !strings.HasPrefix(asset.Digest, "sha256:") {
 			return errors.New("release payload digest is unavailable")
 		}
-		expected := "https://github.com/alrimii/evencord/releases/download/" + ReleaseData.TagName + "/desktop.asar"
+		expected := "https://github.com/EVCORD/evencord/releases/download/" + ReleaseData.TagName + "/desktop.asar"
 		if asset.DownloadURL != expected {
 			return errors.New("unexpected release payload URL")
 		}

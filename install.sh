@@ -26,7 +26,7 @@ case "$(uname -s):$(uname -m)" in
   *) echo "Download the installer for your platform from GitHub releases."; exit 1 ;;
 esac
 
-curl -sS "https://github.com/alrimii/evencord-installer/releases/latest/download/$binary" \
+curl -sS "https://github.com/EVCORD/evencord-installer/releases/latest/download/$binary" \
   --output "$outfile" \
   --location \
   --fail

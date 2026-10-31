@@ -18,7 +18,7 @@ import (
 
 func fixture(t *testing.T) (Trust, Manifest, ed25519.PrivateKey) {
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-	return Trust{Keys: map[string]string{"fixture": base64.StdEncoding.EncodeToString(pub)}}, Manifest{Schema: 1, Product: "evencord", Component: "core", Repository: "alrimii/evencord", RepositoryID: 1438489516, Channel: "stable", Version: "1.2.3", Sequence: 2, Source: strings.Repeat("a", 40), Upstream: strings.Repeat("b", 40), Platform: "win32", Arch: "x64", Discord: "stable", Loader: 1, Published: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339), Expires: time.Now().Add(time.Hour).UTC().Format(time.RFC3339), Archives: []string{strings.Repeat("c", 64)}, Artifact: Artifact{"desktop.asar", 3, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"}}, priv
+	return Trust{Keys: map[string]string{"fixture": base64.StdEncoding.EncodeToString(pub)}}, Manifest{Schema: 1, Product: "evencord", Component: "core", Repository: "EVCORD/evencord", RepositoryID: 1438489516, Channel: "stable", Version: "1.2.3", Sequence: 2, Source: strings.Repeat("a", 40), Upstream: strings.Repeat("b", 40), Platform: "win32", Arch: "x64", Discord: "stable", Loader: 1, Published: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339), Expires: time.Now().Add(time.Hour).UTC().Format(time.RFC3339), Archives: []string{strings.Repeat("c", 64)}, Artifact: Artifact{"desktop.asar", 3, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"}}, priv
 }
 func signed(m Manifest, p ed25519.PrivateKey) []byte {
 	b, _ := json.Marshal(m)
@@ -118,7 +118,7 @@ func TestRollbackAndRedirects(t *testing.T) {
 func TestSelfUpdateFailurePreservesExecutable(t *testing.T) {
 	trust, m, key := fixture(t)
 	m.Component = "installer-cli"
-	m.Repository = "alrimii/evencord-installer"
+	m.Repository = "EVCORD/evencord-installer"
 	m.RepositoryID = 1438489594
 	m.Artifact.Name = "EvenCordInstallerCli-x64.exe"
 	dir := t.TempDir()

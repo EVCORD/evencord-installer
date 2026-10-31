@@ -46,7 +46,7 @@ func init() {
 	}()
 }
 func GetInstallerDownloadLink() string {
-	const BaseUrl = "https://github.com/alrimii/evencord-installer/releases/latest/download/"
+	const BaseUrl = "https://github.com/EVCORD/evencord-installer/releases/latest/download/"
 	switch runtime.GOOS {
 	case "windows":
 		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "EvenCord-cli", "EvenCord")
