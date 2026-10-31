@@ -73,7 +73,7 @@ func main() {
 	}
 
 	if *versionFlag {
-		fmt.Println("EvenCordInstaller Cli", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
+		fmt.Println("EvenCord CLI", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
 		fmt.Println("Copyright (C) 2026 Vendicated, thororen1234, Vencord, and EvenCord contributors")
 		fmt.Println("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.")
 		return

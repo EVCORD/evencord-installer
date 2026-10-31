@@ -71,34 +71,34 @@ ifeq ($(ARCH),universal)
 	rm build/installer-amd64 build/installer-arm64
 endif # ARCH
 ifeq ($(GUI),1)
-	cp -R macos/Equilotl.app build/EvenCordInstaller.app
-	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" build/EvenCordInstaller.app/Contents/Info.plist
-	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(HASH)" build/EvenCordInstaller.app/Contents/Info.plist
+	cp -R macos/Equilotl.app build/EvenCord.app
+	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" build/EvenCord.app/Contents/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(HASH)" build/EvenCord.app/Contents/Info.plist
 ifeq ($(ARCH),universal)
-	mv build/installer-universal build/EvenCordInstaller.app/Contents/MacOS/EvenCordInstaller
+	mv build/installer-universal build/EvenCord.app/Contents/MacOS/EvenCord
 else
-	mv build/installer-$(ARCH) build/EvenCordInstaller.app/Contents/MacOS/EvenCordInstaller
+	mv build/installer-$(ARCH) build/EvenCord.app/Contents/MacOS/EvenCord
 endif # ARCH
-	codesign --deep --force --options runtime --sign "$(IDENTITY)" build/EvenCordInstaller.app
+	codesign --deep --force --options runtime --sign "$(IDENTITY)" build/EvenCord.app
 ifeq ($(DMG),1)
 ifeq ($(shell command -v create-dmg 2>/dev/null),)
 	$(error create-dmg is not installed)
 endif
 	create-dmg \
-		--volname "EvenCordInstaller" \
+		--volname "EvenCord" \
 		--volicon macos/icon.icns \
 		--background "macos/background.png" \
 		--window-pos 200 120 \
 		--window-size 510 340 \
 		--icon-size 100 \
-		--icon EvenCordInstaller.app 160 155 \
-		--hide-extension EvenCordInstaller.app \
+		--icon EvenCord.app 160 155 \
+		--hide-extension EvenCord.app \
 		--app-drop-link 350 155 \
-		build/EvenCordInstaller.dmg \
-		build/EvenCordInstaller.app
+		build/EvenCord.dmg \
+		build/EvenCord.app
 endif # DMG
 else # GUI
-	mv build/installer-$(ARCH) build/EvenCordInstallerCli-$(PLATFORM)
+	mv build/installer-$(ARCH) build/EvenCord-cli-$(PLATFORM)
 endif # GUI
 
 else ifeq ($(PLATFORM),windows) # PLATFORM
@@ -109,15 +109,15 @@ else ifeq ($(PLATFORM),windows) # PLATFORM
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) \
 		go build -v -tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/EvenCordInstaller$(POSTFIX)$(WINARCH).exe
+		-o build/EvenCord$(POSTFIX)$(WINARCH).exe
 
 else # PLATFORM
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) go build \
 		-v \
 		-tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/EvenCordInstaller$(POSTFIX)-$(PLATFORM)
-	chmod +x build/EvenCordInstaller$(POSTFIX)-$(PLATFORM)
+		-o build/EvenCord$(POSTFIX)-$(PLATFORM)
+	chmod +x build/EvenCord$(POSTFIX)-$(PLATFORM)
 endif
 
 clean:

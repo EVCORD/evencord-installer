@@ -80,7 +80,7 @@ func main() {
 		os.Setenv("GDK_DPI_SCALE", "1")
 	}
 
-	win = g.NewMasterWindow("EvenCord Installer", 1200, 800, linuxFlags)
+	win = g.NewMasterWindow("EvenCord", 1000, 650, linuxFlags)
 	applyBrandTheme()
 
 	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
@@ -319,17 +319,17 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 			g.PopupModal(id).
 				Flags(g.WindowFlagsNoTitleBar|Ternary(isDynamic, g.WindowFlagsAlwaysAutoResize, 0)).
 				Layout(
-					g.Style().SetFontSize(30).To(
+					g.Style().SetFontSize(24).To(
 						g.Label(title),
 					),
 					g.Dummy(0, 5),
-					g.Style().SetFontSize(20).To(
+					g.Style().SetFontSize(17).To(
 						g.Label(description),
 					),
 					&CondWidget{extra != "", func() g.Widget {
 						return g.Column(
 							g.Dummy(0, 10),
-							g.Style().SetFontSize(20).To(
+							g.Style().SetFontSize(17).To(
 								g.Label(extra).Wrapped(true),
 							),
 						)
@@ -392,10 +392,10 @@ func UpdateModal() g.Widget {
 				Flags(g.WindowFlagsNoTitleBar | g.WindowFlagsAlwaysAutoResize).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(30).To(
+						g.Style().SetFontSize(24).To(
 							g.Label("Your Installer is outdated!"),
 						),
-						g.Style().SetFontSize(20).To(
+						g.Style().SetFontSize(17).To(
 							g.Label(
 								"Would you like to update now?\n\n"+
 									"Once you press Update Now, the new installer will automatically be downloaded.\n"+
@@ -448,7 +448,7 @@ func renderInstaller() g.Widget {
 	candidates := makeAutoComplete()
 
 	wi, _ := win.GetSize()
-	w := float32(wi) - 96
+	w := float32(wi) - 64
 
 	var currentDiscord *DiscordInstall
 	if radioIdx != customChoiceIdx {
@@ -462,20 +462,8 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFontSize(20).To(
-			renderErrorCard(
-				DiscordYellow,
-				color.Black,
-				"**Github** and **alrimii.github.io/evencord** are the only official places to get EvenCord. Any other site claiming to be us is malicious.\n"+
-					"If you downloaded from any other source, you should delete / uninstall everything immediately, run a malware scan and change your Discord password.",
-				90,
-			),
-		),
-
-		g.Dummy(0, 20),
-
-		g.Style().SetFontSize(30).To(
-			g.Label("Please select an install to patch"),
+		g.Style().SetFontSize(24).To(
+			g.Label("Choose your Discord"),
 		),
 		g.Dummy(0, 10),
 
@@ -487,14 +475,14 @@ func renderInstaller() g.Widget {
 
 			return &CondWidget{!showCustomLocation, func() g.Widget {
 				return g.Column(
-					g.Style().SetFontSize(25).To(g.Label(s)),
+					g.Style().SetFontSize(19).To(g.Label(s)),
 					g.Dummy(0, 10),
 					g.Checkbox("I am an advanced user and have Discord installed at a different location", &showCustomLocation),
 				)
 			}, nil}
 		}, nil},
 
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFontSize(17).To(
 			g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
 				d := v.(*DiscordInstall)
 				var text string
@@ -515,7 +503,6 @@ func renderInstaller() g.Widget {
 
 				return g.Row(
 					g.RadioButton(text, radioIdx == i).OnChange(makeRadioOnChange(i)),
-					g.Style().SetColor(g.StyleColorText, color.RGBA{0xff, 0xff, 0xff, 0x80}).To(g.Label(" "+d.path)),
 				)
 			}),
 			&CondWidget{showCustomLocation, func() g.Widget {
@@ -528,7 +515,7 @@ func renderInstaller() g.Widget {
 				g.Dummy(0, 5),
 				g.Style().
 					SetStyle(g.StyleVarFramePadding, 16, 16).
-					SetFontSize(20).
+					SetFontSize(17).
 					To(
 						g.InputText(&customDir).Hint("The custom location").
 							Size(w-16).
@@ -576,7 +563,7 @@ func renderInstaller() g.Widget {
 
 		g.Dummy(0, 20),
 
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFontSize(17).To(
 			g.Row(
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordGreen).
@@ -595,7 +582,7 @@ func renderInstaller() g.Widget {
 					SetStyle(g.StyleVarFrameRounding, 8, 8).
 					SetDisabled(GithubError != nil).
 					To(
-						g.Button("Reinstall / Repair").
+						g.Button("Repair").
 							OnClick(func() {
 								if IsDevInstall {
 									handlePatch()
@@ -677,7 +664,7 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 }
 
 func loop() {
-	g.PushWindowPadding(48, 48)
+	g.PushWindowPadding(32, 32)
 
 	g.SingleWindow().
 		RegisterKeyboardShortcuts(
@@ -694,16 +681,16 @@ func loop() {
 		).
 		Layout(
 			g.Align(g.AlignCenter).To(
-				g.Style().SetFontSize(40).To(
-					g.Label("EvenCordInstaller"),
+				g.Style().SetFontSize(36).To(
+					g.Label("EvenCord"),
 				),
 			),
-			g.Dummy(0, 40),
+			g.Dummy(0, 24),
 
 			&CondWidget{
 				GithubError != nil,
 				func() g.Widget {
-					return g.Style().SetFontSize(20).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit "+SupportUrl+" for help.", 40))
+					return g.Style().SetFontSize(17).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit "+SupportUrl+" for help.", 40))
 				},
 				nil,
 			},

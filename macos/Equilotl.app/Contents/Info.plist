@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDisplayName</key>
-	<string>EvenCordInstaller</string>
+	<string>EvenCord</string>
 	<key>CFBundleExecutable</key>
-	<string>EvenCordInstaller</string>
+	<string>EvenCord</string>
 	<key>CFBundleIdentifier</key>
 	<string>io.github.alrimii.evencord-installer</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>EvenCordInstaller</string>
+	<string>EvenCord</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

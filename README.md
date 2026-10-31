@@ -1,11 +1,28 @@
-# EvenCord Installer
+# EvenCord
 
-Based on Equicord's Equilotl installer, with EvenCord identity and download repositories. The normal Windows, macOS and Linux discovery and patching paths are inherited from upstream. Platform artifacts are built by the release matrix; device runtime checks must be reported separately.
+Install, repair or remove EvenCord from Discord.
 
-Download from [EvenCord Installer releases](https://github.com/alrimii/evencord-installer/releases/latest). Use Install, Repair or Uninstall for your Discord installation. Settings are retained. Close Discord and save clips before operating.
+## Download
 
-Version 1.1.0 migrates owned legacy managed Windows installations through their existing recovery engine before applying the normal loader. New installs use a stable EvenCord payload path. Core downloads are checked against their exact repository URL, published size and GitHub SHA-256 digest. The former Windows-only archive catalog no longer limits normal installs. Legacy records and original Discord archives are preserved during recovery.
+| Platform | Intel / AMD (x64) | ARM64 |
+| --- | --- | --- |
+| Windows | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord.exe) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-arm64.exe) |
+| macOS | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-x64.dmg) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-arm64.dmg) |
+| Linux | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-arm64) |
 
-Windows binaries are not Authenticode signed. Installer self-update is disabled; download new installer releases from GitHub. Client updates are delivered by EvenCord core independently.
+[macOS Universal](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord.dmg) ? [All versions](https://github.com/alrimii/evencord-installer/releases)
 
-Licensed under GPL. Original Equilotl and Vencord installer attribution is retained. EvenCord support is maintained in its own repository.
+<details>
+<summary>Command line downloads</summary>
+
+| Platform | x64 | ARM64 |
+| --- | --- | --- |
+| Windows | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli.exe) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli-arm64.exe) |
+| macOS | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli-x64) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli-arm64) |
+| Linux | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli-linux) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-cli-linux-arm64) |
+
+</details>
+
+Close Discord, open EvenCord and choose **Install** or **Repair**. Your settings are kept.
+
+Based on [Equilotl](https://github.com/Equicord/Equilotl) and the Vencord installer. Original credits are retained. [GPL](LICENSE).

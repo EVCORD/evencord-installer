@@ -1,7 +1,5 @@
 name: Validate EvenCord installer
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

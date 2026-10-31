@@ -49,7 +49,7 @@ func GetInstallerDownloadLink() string {
 	const BaseUrl = "https://github.com/alrimii/evencord-installer/releases/latest/download/"
 	switch runtime.GOOS {
 	case "windows":
-		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "EvenCordInstallerCli-x64", "EvenCordInstaller-x64")
+		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "EvenCord-cli", "EvenCord")
 		if runtime.GOARCH == "arm64" {
 			filename += "-arm64"
 		}
@@ -57,7 +57,7 @@ func GetInstallerDownloadLink() string {
 	case "darwin":
 		switch runtime.GOARCH {
 		case "amd64":
-			return BaseUrl + "EvenCordInstaller-x64.dmg"
+			return BaseUrl + "EvenCord.dmg"
 		case "arm64":
 			return BaseUrl + "EvenCordInstaller-arm64.dmg"
 		default:
