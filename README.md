@@ -2,6 +2,12 @@
 
 Install, repair or remove EvenCord from Discord.
 
+## Discord community
+
+**[Join the official EvenCord server](https://discord.gg/X9ZPfzEe9b)** for plugins, release news and help in Arabic or English.
+
+[Get support](https://discord.com/channels/1396464693169885315/1566071279864512574) | [Suggest a feature](https://discord.com/channels/1396464693169885315/1566071265649889421)
+
 ## Download
 
 | Platform | Intel / AMD (x64) | ARM64 |
@@ -28,5 +34,3 @@ Close Discord, open EvenCord and choose **Install** or **Repair**. Your settings
 Based on [Equilotl](https://github.com/Equicord/Equilotl) and the Vencord installer. Original credits are retained. [GPL](LICENSE).
 
 Developed by **BOSS**. Discord: **bss** / [Instagram: _w0d](https://www.instagram.com/_w0d/).
-
-Join the [official EvenCord community](https://discord.gg/X9ZPfzEe9b) for plugin discussions, support and suggestions.
