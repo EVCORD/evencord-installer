@@ -69,9 +69,7 @@ func closeProcessInRoot(pid uint32, root string, api processAccess) error {
 }
 
 func (di *DiscordInstall) closeForOperation() error {
-	if _, err := di.target(); err != nil {
-		return err
-	}
+
 	name := windowsNames[di.branch] + ".exe"
 	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if err != nil {

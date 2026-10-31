@@ -1,3 +1,13 @@
+# Installer releases from 1.1.0
+
+The normal installation flow is inherited from Equilotl and uses EvenCord release assets on Windows, macOS and Linux. Core downloads require the exact EvenCord GitHub asset URL, size and SHA-256 digest. The signed managed protocol below is retained only to recover and migrate older Windows installations.
+
+Platform releases build on native runners. Windows executables are not Authenticode signed; macOS packages use ad hoc signing and are not notarized. Build success must not be represented as device runtime testing. Installer self-update is disabled.
+
+Equilotl changes are checked every twelve hours. Source conflicts and failing CLI or migration tests prevent publishing. Successful integrations advance the installer version and dispatch the platform release matrix. No upstream installer binary is substituted for an EvenCord build.
+
+The remainder describes the historical managed installer protocol.
+
 # Release security
 
 Stable releases use channel `stable` and independent component versions such as `1.0.0`. GitHub tags are `core-vVERSION` and `installer-vVERSION`. The approved repository release list is filtered to stable releases. Stable, PTB and Canary support is constrained by the signed archive catalog.

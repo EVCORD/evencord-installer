@@ -13,11 +13,11 @@ import (
 	"image/color"
 )
 
-var ReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Core.Slug + "/releases?per_page=100"
+var ReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Core.Slug + "/releases/latest"
 
 const ReleaseUrlFallback = ""
 
-var InstallerReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Installer.Slug + "/releases?per_page=100"
+var InstallerReleaseUrl = "https://api.github.com/repos/" + branding.Project.Repositories.Installer.Slug + "/releases/latest"
 
 const InstallerReleaseUrlFallback = ""
 

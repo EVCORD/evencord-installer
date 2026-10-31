@@ -10,9 +10,13 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"net/http"
 	"os"
 	path "path/filepath"
+	"strconv"
 )
+
+const OpenAsarDownloadLink = "https://github.com/GooseMod/OpenAsar/releases/download/nightly/app.asar"
 
 func FindAsarFile(dir string) (*os.File, error) {
 	for _, file := range []string{"_app.asar", "app.asar"} {
@@ -60,9 +64,86 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 }
 
 func (di *DiscordInstall) InstallOpenAsar() error {
-	return errors.New("OpenAsar modification is unsupported by EvenCord.")
+	PreparePatch(di)
+
+	if di.IsOpenAsar() {
+		return errors.New("OpenAsar is already installed")
+	}
+
+	dir := path.Join(di.appPath, "..")
+	asarFile, err := FindAsarFile(dir)
+	if err != nil {
+		return err
+	}
+	_ = asarFile.Close()
+
+	asarPath := asarFile.Name()
+	backupPath := path.Join(dir, "app.asar.backup")
+	if err = os.Rename(asarPath, backupPath); err != nil {
+		return err
+	}
+
+	restoreOnFailure := true
+	defer func() {
+		if restoreOnFailure {
+			if innerErr := os.Rename(backupPath, asarPath); innerErr != nil {
+				Log.Error("Failed to restore app.asar after OpenAsar install failure. Install is bricked.", innerErr)
+			}
+		}
+	}()
+
+	res, err := http.Get(OpenAsarDownloadLink)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		return errors.New("Failed to fetch OpenAsar - " + strconv.Itoa(res.StatusCode) + ": " + res.Status)
+	}
+
+	outFile, err := os.Create(asarPath)
+	if err != nil {
+		return err
+	}
+
+	_, copyErr := io.Copy(outFile, res.Body)
+	closeErr := outFile.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+
+	restoreOnFailure = false
+	di.isOpenAsar = Ptr(true)
+	return nil
 }
 
 func (di *DiscordInstall) UninstallOpenAsar() error {
-	return errors.New("OpenAsar modification is unsupported by EvenCord.")
+	PreparePatch(di)
+
+	dir := path.Join(di.appPath, "..")
+	// .original is our old name
+	// OpenAsar's updater uses .backup, so we now also use that - .original is deprecated
+	for _, file := range []string{path.Join(dir, "app.asar.backup"), path.Join(dir, "app.asar.original")} {
+		if !ExistsFile(file) {
+			continue
+		}
+
+		asarFile, err := FindAsarFile(dir)
+		if err != nil {
+			return err
+		}
+		_ = asarFile.Close()
+
+		if err = os.Rename(file, asarFile.Name()); err != nil {
+			return err
+		}
+
+		di.isOpenAsar = Ptr(false)
+		return nil
+	}
+
+	return errors.New("No app.asar.backup. Reinstall Discord")
 }

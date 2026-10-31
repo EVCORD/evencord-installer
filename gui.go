@@ -9,9 +9,10 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
-	"equilotl/branding"
 	"errors"
+	"image"
 	"image/color"
 
 	g "github.com/AllenDang/giu"
@@ -58,7 +59,40 @@ func init() {
 	LogLevel = LevelDebug
 }
 
-func main() { secureGUI() }
+func main() {
+	InitGithubDownloader()
+	discords = FindDiscords()
+	customChoiceIdx = len(discords)
+
+	go func() {
+		<-GithubDoneChan
+		g.Update()
+	}()
+
+	go func() {
+		<-SelfUpdateCheckDoneChan
+		g.Update()
+	}()
+
+	var linuxFlags g.MasterWindowFlags = 0
+	if runtime.GOOS == "linux" {
+		os.Setenv("GDK_SCALE", "1")
+		os.Setenv("GDK_DPI_SCALE", "1")
+	}
+
+	win = g.NewMasterWindow("EvenCord Installer", 1200, 800, linuxFlags)
+	applyBrandTheme()
+
+	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
+	if err != nil {
+		Log.Warn("Failed to load application icon", err)
+		Log.Debug(iconBytes, len(iconBytes))
+	} else {
+		win.SetIcon([]image.Image{icon})
+	}
+
+	win.Run(loop)
+}
 
 type CondWidget struct {
 	predicate  bool
@@ -432,7 +466,7 @@ func renderInstaller() g.Widget {
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
-				"EvenCord source is maintained at github.com/alrimii/evencord. No EvenCord binaries are distributed yet.\n"+
+				"**Github** and **alrimii.github.io/evencord** are the only official places to get EvenCord. Any other site claiming to be us is malicious.\n"+
 					"If you downloaded from any other source, you should delete / uninstall everything immediately, run a malware scan and change your Discord password.",
 				90,
 			),
@@ -476,7 +510,7 @@ func renderInstaller() g.Widget {
 				}
 
 				if d.isPatched {
-					text += " (Modified installation; ownership unverified)"
+					text += " (EvenCord Installed)"
 				}
 
 				return g.Row(
@@ -661,7 +695,7 @@ func loop() {
 		Layout(
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(
-					g.Label(branding.Project.InstallerName),
+					g.Label("EvenCordInstaller"),
 				),
 			),
 			g.Dummy(0, 40),

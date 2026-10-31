@@ -78,8 +78,7 @@ func ParseDiscord(p, branch string) *DiscordInstall {
 		isFlatpak:        false,
 		isSystemElectron: false,
 	}
-	state := result.ownership()
-	result.isPatched = state == "Installed" || state == "Repair available"
+
 	return result
 }
 

@@ -10,7 +10,6 @@ package main
 
 import (
 	"bytes"
-	"equilotl/branding"
 	"equilotl/buildinfo"
 	"errors"
 	"flag"
@@ -50,6 +49,8 @@ func die(msg string) {
 }
 
 func main() {
+	InitGithubDownloader()
+	discords = FindDiscords()
 
 	// Used by log.go init func
 	flag.Bool("debug", false, "Enable debug info")
@@ -59,7 +60,6 @@ func main() {
 	var updateSelfFlag = flag.Bool("update-self", false, "Update me to the latest version")
 	var installFlag = flag.Bool("install", false, "Install EvenCord")
 	var updateFlag = flag.Bool("repair", false, "Repair EvenCord")
-	var recoverFlag = flag.Bool("recover", false, "Recover an interrupted EvenCord operation")
 	var uninstallFlag = flag.Bool("uninstall", false, "Uninstall EvenCord")
 	var installOpenAsarFlag = flag.Bool("install-openasar", false, "Install OpenAsar")
 	var uninstallOpenAsarFlag = flag.Bool("uninstall-openasar", false, "Uninstall OpenAsar")
@@ -73,24 +73,9 @@ func main() {
 	}
 
 	if *versionFlag {
-		fmt.Println(branding.Project.InstallerName+" CLI", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
-		fmt.Println("Copyright (C) 2026 Vendicated, thororen1234, Vencord, and Equicord contributors")
+		fmt.Println("EvenCordInstaller Cli", buildinfo.InstallerTag, "("+buildinfo.InstallerGitHash+")")
+		fmt.Println("Copyright (C) 2026 Vendicated, thororen1234, Vencord, and EvenCord contributors")
 		fmt.Println("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.")
-		return
-	}
-
-	if !branding.Project.Capabilities.Distribution || !branding.Project.Capabilities.Installation {
-		die(ErrDistributionDisabled.Error())
-		return
-	}
-	InitGithubDownloader()
-	discords = FindDiscords()
-	if *recoverFlag {
-		if err := PromptDiscord("recover", *locationFlag, *branchFlag).recover(); err != nil {
-			die(err.Error())
-			return
-		}
-		exitSuccess()
 		return
 	}
 
@@ -102,7 +87,6 @@ func main() {
 			Log.Error("Failed to update self:", err)
 			exitFailure()
 		}
-		Log.Info("Verified installer staged at", pendingInstaller, "The current executable was retained. Launch the staged copy to continue.")
 		exitSuccess()
 	}
 
@@ -129,7 +113,7 @@ func main() {
 			<-SelfUpdateCheckDoneChan
 			if IsSelfOutdated {
 				Log.Warn("Your installer is outdated.")
-				Log.Warn("To update, select the 'Update EvenCord Installer' option to update, or run with --update-self")
+				Log.Warn("To update, select the 'Update EvenCordInstaller' option to update, or run with --update-self")
 			}
 		}()
 
@@ -140,7 +124,7 @@ func main() {
 			"Install OpenAsar",
 			"Uninstall OpenAsar",
 			"View Help Menu",
-			"Update EvenCord Installer",
+			"Update EvenCordInstaller",
 			"Quit",
 		}
 		_, choice, err := (&promptui.Select{
@@ -156,7 +140,7 @@ func main() {
 			return
 		case "Quit":
 			return
-		case "Update EvenCord Installer":
+		case "Update EvenCordInstaller":
 			if err := UpdateSelf(); err != nil {
 				Log.Error("Failed to update self:", err)
 				exitFailure()
@@ -175,9 +159,9 @@ func main() {
 		errSilent = PromptDiscord("unpatch", *locationFlag, *branchFlag).unpatch()
 	} else if update {
 		Log.Info("Downloading latest EvenCord files...")
-		errSilent = installLatestBuilds()
-		if errSilent == nil {
-			Log.Info("Download verified.")
+		err := installLatestBuilds()
+		Log.Info("Done!")
+		if err == nil {
 			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
 		}
 	} else if installOpenAsar {
@@ -271,7 +255,7 @@ func PromptDiscord(action, dir, branch string) *DiscordInstall {
 	items := SliceMap(discords, func(d any) string {
 		install := d.(*DiscordInstall)
 		//goland:noinspection GoDeprecation
-		return fmt.Sprintf("%s - %s%s", strings.Title(install.branch), install.path, " ["+install.ownership()+"]")
+		return fmt.Sprintf("%s - %s%s", strings.Title(install.branch), install.path, Ternary(install.isPatched, " [EvenCord Installed]", ""))
 	})
 	items = append(items, "Custom Location")
 

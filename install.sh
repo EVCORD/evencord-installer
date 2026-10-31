@@ -1,3 +1,52 @@
 #!/bin/sh
-printf "%s\n" "EvenCord installation is disabled until Phase 3. Only Windows x64 is planned initially." >&2
-exit 1
+set -e
+
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Run me as normal user, not root!"
+    exit 1
+fi
+
+if grep -q "CHROMEOS_RELEASE_NAME" /etc/lsb-release 2>/dev/null; then
+	echo "ChromeOS is not supported! Use the chrome extension. https://chromewebstore.google.com/detail/equicord-web/mcambpfmpjnncfoodejdmehedbkjepmi"
+	exit 1
+fi
+
+outfile=$(mktemp --tmpdir="$HOME")
+trap 'rm -f "$outfile"' EXIT
+
+echo "Downloading Installer..."
+
+set -- "XDG_CONFIG_HOME=$XDG_CONFIG_HOME"
+
+case "$(uname -s):$(uname -m)" in
+  Darwin:arm64) binary="EvenCordInstallerCli-arm64" ;;
+  Darwin:*) binary="EvenCordInstallerCli-x64" ;;
+  Linux:aarch64|Linux:arm64) binary="EvenCordInstallerCli-linux-arm64" ;;
+  Linux:*) binary="EvenCordInstallerCli-linux" ;;
+  *) echo "Download the installer for your platform from GitHub releases."; exit 1 ;;
+esac
+
+curl -sS "https://github.com/alrimii/evencord-installer/releases/latest/download/$binary" \
+  --output "$outfile" \
+  --location \
+  --fail
+
+chmod +x "$outfile"
+
+if [ "$(uname -s)" = "Darwin" ]; then
+  "$outfile"
+elif command -v sudo >/dev/null; then
+  echo "Running with sudo"
+  sudo env "$@" "$outfile"
+elif command -v doas >/dev/null; then
+  echo "Running with doas"
+  doas env "$@" "$outfile"
+elif command -v run0 >/dev/null; then
+  echo "Running with run0"
+  run0 env "$@" "$outfile"
+elif command -v pkexec >/dev/null; then
+  echo "Running with pkexec"
+  pkexec env "$@" "SUDO_USER=$(whoami)" "$outfile"
+else
+  echo "Neither sudo nor doas were found. Please install either of them to proceed."
+fi

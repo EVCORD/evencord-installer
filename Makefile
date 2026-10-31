@@ -3,7 +3,7 @@
 PLATFORM 	?= $(shell go env GOOS)
 ARCH		?= $(shell go env GOARCH)
 
-VERSION 	?= 0.1.0-dev.0
+VERSION 	?= $(shell git describe --tags --abbrev=0)
 HASH 		:= $(shell git rev-parse --short HEAD | xargs)
 
 # "Developer ID Application: <name> (<team-id>)" or "-"
@@ -46,14 +46,6 @@ ifeq ($(ARCH),universal)
 MACOS_ARCHS := amd64 arm64
 endif
 
-ifeq ($(PLATFORM),windows)
-ifneq ($(ARCH),amd64)
-$(error EvenCord Phase 2 supports Windows x64 development builds only)
-endif
-else
-$(error EvenCord Phase 2 supports Windows x64 development builds only)
-endif
-
 all: build
 
 build:
@@ -79,51 +71,53 @@ ifeq ($(ARCH),universal)
 	rm build/installer-amd64 build/installer-arm64
 endif # ARCH
 ifeq ($(GUI),1)
-	cp -R macos/Equilotl.app build/Equilotl.app
-	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" build/Equilotl.app/Contents/Info.plist
-	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(HASH)" build/Equilotl.app/Contents/Info.plist
+	cp -R macos/Equilotl.app build/EvenCordInstaller.app
+	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" build/EvenCordInstaller.app/Contents/Info.plist
+	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(HASH)" build/EvenCordInstaller.app/Contents/Info.plist
 ifeq ($(ARCH),universal)
-	mv build/installer-universal build/Equilotl.app/Contents/MacOS/Equilotl
+	mv build/installer-universal build/EvenCordInstaller.app/Contents/MacOS/EvenCordInstaller
 else
-	mv build/installer-$(ARCH) build/Equilotl.app/Contents/MacOS/Equilotl
+	mv build/installer-$(ARCH) build/EvenCordInstaller.app/Contents/MacOS/EvenCordInstaller
 endif # ARCH
-	codesign --deep --force --options runtime --sign "$(IDENTITY)" build/Equilotl.app
+	codesign --deep --force --options runtime --sign "$(IDENTITY)" build/EvenCordInstaller.app
 ifeq ($(DMG),1)
 ifeq ($(shell command -v create-dmg 2>/dev/null),)
 	$(error create-dmg is not installed)
 endif
 	create-dmg \
-		--volname "Equilotl" \
+		--volname "EvenCordInstaller" \
 		--volicon macos/icon.icns \
 		--background "macos/background.png" \
 		--window-pos 200 120 \
 		--window-size 510 340 \
 		--icon-size 100 \
-		--icon Equilotl.app 160 155 \
-		--hide-extension Equilotl.app \
+		--icon EvenCordInstaller.app 160 155 \
+		--hide-extension EvenCordInstaller.app \
 		--app-drop-link 350 155 \
-		build/Equilotl.dmg \
-		build/Equilotl.app
+		build/EvenCordInstaller.dmg \
+		build/EvenCordInstaller.app
 endif # DMG
 else # GUI
-	mv build/installer-$(ARCH) build/EquilotlCli-$(PLATFORM)
+	mv build/installer-$(ARCH) build/EvenCordInstallerCli-$(PLATFORM)
 endif # GUI
 
 else ifeq ($(PLATFORM),windows) # PLATFORM
-	go run ./cmd/brand-resources $(if $(filter 0,$(GUI)),-cli,)
-	go-winres make --in build/winres.json --arch $(ARCH) --product-version "0.1.0.0"
+	export GOROOT=/mingw64/lib/go
+	export GOPATH=/mingw64
+
+	go-winres make --arch $(ARCH) --product-version "git-tag"
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) \
 		go build -v -tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/EvenCordInstaller$(POSTFIX)-x64.exe
+		-o build/EvenCordInstaller$(POSTFIX)$(WINARCH).exe
 
 else # PLATFORM
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) go build \
 		-v \
 		-tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/Equilotl$(POSTFIX)-$(PLATFORM)
-	chmod +x build/Equilotl$(POSTFIX)-$(PLATFORM)
+		-o build/EvenCordInstaller$(POSTFIX)-$(PLATFORM)
+	chmod +x build/EvenCordInstaller$(POSTFIX)-$(PLATFORM)
 endif
 
 clean:
@@ -131,8 +125,27 @@ clean:
 
 help:
 	@printf '%s\n' \
-		'EvenCord Phase 2: Windows x64 development builds only.' \
-		'make PLATFORM=windows ARCH=amd64 GUI=0' \
-		'make PLATFORM=windows ARCH=amd64 GUI=1' \
-		'Go, go-winres and a compatible CGO compiler (GUI) are required.' \
-		'VERSION defaults to 0.1.0-dev.0. Installation and distribution are disabled.'
+		'Usage: make <target> [OPTIONS]' \
+		'' \
+		'Targets:' \
+		'  help     Show this help page' \
+		'  build    Build the project (default)' \
+		'  clean    Remove build artifacts' \
+		'' \
+		'Options:' \
+		'  GUI=1       Build with GUI support' \
+		'  DMG=1       Build DMG for macOS' \
+		'  WAYLAND=1        Build with Wayland support for Linux' \
+		'  PLATFORM=<os>    Target platform (darwin, windows, linux)' \
+		'  ARCH=<arch>      Target architecture (amd64, arm64, 386, universal (macOS only))' \
+		'  CC=<cc> CXX=<c++>  C/C++ compilers, for a GUI build that cross-compiles' \
+		'                     (e.g. aarch64-w64-mingw32-clang for a Windows ARM64 GUI)' \
+		'  IDENTITY=<id>    Code signing identity for macOS (default: -)' \
+		'  VERSION=<ver>    Version string (default: latest git tag)' \
+		'' \
+		'Examples:' \
+		'  make clean' \
+		'  make PLATFORM=universal GUI=1' \
+		'  make PLATFORM=linux ARCH=amd64' \
+		'  make PLATFORM=windows ARCH=arm64' \
+		'  make GUI=1 VERSION="1.0.0"'

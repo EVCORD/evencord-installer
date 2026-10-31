@@ -1,28 +1,43 @@
-name: Prepare upstream review
+name: Integrate Equilotl installer updates
 on:
+  schedule:
+    - cron: '41 */12 * * *'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
+  actions: write
+concurrency:
+  group: evencord-installer-upstream
+  cancel-in-progress: false
 jobs:
-  proposal:
+  integrate:
+    if: github.repository == 'alrimii/evencord-installer' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          persist-credentials: false
-      - name: Record upstream changes without merging or pushing
-        shell: bash
-        run: |
-          mkdir -p review
-          git fetch https://github.com/Equicord/Equilotl.git main
-          git rev-parse HEAD FETCH_HEAD > review/revisions.txt
-          git log --oneline HEAD..FETCH_HEAD > review/commits.txt
-          git diff --name-status HEAD...FETCH_HEAD > review/files.txt
-          git merge-tree --write-tree HEAD FETCH_HEAD > review/merge-analysis.txt || status=$$
-          if [ "${status:-0}" -gt 1 ]; then exit "$status"; fi
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          name: upstream-review
-          path: review
-          retention-days: 7
+          node-version: '24'
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.2'
+      - name: Integrate upstream
+        run: |
+          git config user.name 'EvenCord automation'
+          git config user.email 'actions@users.noreply.github.com'
+          node scripts/sync-upstream.mjs
+      - name: Validate and publish source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if test "$(git rev-parse HEAD)" = "$GITHUB_SHA"; then exit 0; fi
+          CGO_ENABLED=0 go test -tags cli ./...
+          CGO_ENABLED=0 go vet -tags cli ./...
+          version=$(sed -n 's/.*InstallerTag *= *"\([0-9.]*\)".*/\1/p' buildinfo/git_data.go)
+          test -n "$version"
+          git tag "installer-v$version"
+          git push origin HEAD:main "installer-v$version"
+          gh workflow run release.yml --ref "installer-v$version"

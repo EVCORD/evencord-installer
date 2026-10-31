@@ -1,75 +1,25 @@
-name: EvenCord installer validation
+name: Validate EvenCord installer
 on:
-  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   validate:
-    runs-on: windows-latest
-    timeout-minutes: 45
-    env:
-      GOENV: "off"
-      GOTOOLCHAIN: local
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.26.2"
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: "22"
-      - name: Validate isolated fixtures
-        shell: pwsh
+          go-version: '1.26.2'
+      - name: Validate CLI and migration fixtures
+        env:
+          CGO_ENABLED: '0'
         run: |
-          New-Item -ItemType Directory -Force .cache/tmp | Out-Null
-          $env:TEMP="$PWD/.cache/tmp"; $env:TMP=$env:TEMP
-          $env:CGO_ENABLED='0'
-          node scripts/check-release.cjs
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
           go test -tags cli ./...
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
           go vet -tags cli ./...
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-      - name: Download pinned GUI compiler and verify digest
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force .tools | Out-Null
-          Invoke-WebRequest https://github.com/mstorsjo/llvm-mingw/releases/download/20260908/llvm-mingw-20260908-ucrt-x86_64.zip -OutFile .tools/compiler.zip
-          if ((Get-FileHash .tools/compiler.zip -Algorithm SHA256).Hash.ToLower() -ne '1bcf74d06b724aeecaa6412ca85f5b26fb1da770e7cdcefa9263c9c5c3ad34b6') {throw 'Compiler digest mismatch'}
-          Expand-Archive .tools/compiler.zip .tools/compiler
-      - name: Compile CLI and GUI candidates
-        shell: pwsh
-        run: |
-          go install github.com/tc-hib/go-winres@d743268d7ea168077ddd443c4240562d4f5e8c3e
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          $env:CGO_ENABLED='0'
-          go run ./cmd/brand-resources -cli
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          go-winres make --in build/winres.json --arch amd64
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          go build -tags cli -o build/EvenCordInstallerCli-x64.exe .
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          $compiler="$PWD/.tools/compiler/llvm-mingw-20260908-ucrt-x86_64/bin"
-          $env:PATH="$compiler;$env:PATH"; $env:CC="$compiler/x86_64-w64-mingw32-clang.exe"; $env:CXX="$compiler/x86_64-w64-mingw32-clang++.exe"
-          $env:CGO_ENABLED='1'
-          go run ./cmd/brand-resources
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          go-winres make --in build/winres.json --arch amd64
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          go build -tags "static gui" -ldflags "-H=windowsgui" -o build/EvenCordInstaller-x64.exe .
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          node scripts/release-tools.cjs candidate installer-cli build
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-          node scripts/release-tools.cjs candidate installer-gui build
-          if ($LASTEXITCODE) {exit $LASTEXITCODE}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: github.event_name == 'workflow_dispatch'
-        with:
-          name: evencord-unsigned-candidate
-          path: |
-            build/EvenCordInstaller*-x64.exe
-            build/*.candidate.json
-          retention-days: 7
