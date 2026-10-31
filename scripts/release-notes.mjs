@@ -11,7 +11,7 @@ console.log(`# EvenCord ${version}
 
 | Architecture | Windows | macOS | Linux |
 | --- | --- | --- | --- |
-| Intel / AMD (x64) | [EXE](${base}EvenCord.exe) | [DMG](${base}EvenCord-x64.dmg) | [Download](${base}EvenCord) |
+| Intel / AMD (x64) | [EXE](${base}EvenCord.exe) | [DMG](${base}EvenCord.dmg) | [Download](${base}EvenCord) |
 | ARM64 | [EXE](${base}EvenCord-arm64.exe) | [DMG](${base}EvenCord-arm64.dmg) | [Download](${base}EvenCord-arm64) |
 | Universal | | [DMG](${base}EvenCord.dmg) | |
 
