@@ -28,4 +28,6 @@ Linux: [X11](${base}EvenCord-x11) ? [Wayland](${base}EvenCord-wayland) ? [X11 AR
 </details>
 
 Close Discord, open EvenCord and choose Install or Repair. Your settings are kept.
+
+Developed by **BOSS**. Discord: **bss** | [Instagram: _w0d](https://www.instagram.com/_w0d/).
 `);
