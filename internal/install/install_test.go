@@ -29,7 +29,10 @@ type fixture struct {
 
 func newFixture(t *testing.T) fixture {
 	t.Helper()
-	base := t.TempDir()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	r := filepath.Join(base, "Discord", "app-1.0.1", "resources")
 	if err := os.MkdirAll(r, 0700); err != nil {
 		t.Fatal(err)
