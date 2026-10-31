@@ -10,7 +10,7 @@ Install, repair or remove EvenCord from Discord.
 | macOS | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-x64.dmg) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-arm64.dmg) |
 | Linux | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord) | [Download](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord-arm64) |
 
-[macOS Universal](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord.dmg) ? [All versions](https://github.com/alrimii/evencord-installer/releases)
+[macOS Universal](https://github.com/alrimii/evencord-installer/releases/latest/download/EvenCord.dmg) | [All versions](https://github.com/alrimii/evencord-installer/releases)
 
 <details>
 <summary>Command line downloads</summary>

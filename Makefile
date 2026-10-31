@@ -32,7 +32,7 @@ endif # PLATFORM
 
 ifeq ($(GUI),0)
 TAGS 		+= cli
-POSTFIX 	:= Cli
+POSTFIX 	:= -cli
 else
 CGO 		:= 1
 ifeq ($(WAYLAND),1)
